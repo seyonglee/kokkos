@@ -35,6 +35,21 @@ namespace Impl {
    DESUL_IMPL_GCC_HOST_ATOMIC_FETCH_OP_INTEGRAL_ORDER_SCOPE(OP, MemoryOrderSeqCst , MemoryScopeCore  )
 // clang-format on
 
+#if defined(DESUL_HAVE_OPENACC_ATOMICS) && defined(__NVCOMPILER)
+#pragma acc routine(__atomic_fetch_add) seq
+#pragma acc routine(__atomic_fetch_sub) seq
+#pragma acc routine(__atomic_fetch_and) seq
+#pragma acc routine(__atomic_fetch_xor) seq
+#pragma acc routine(__atomic_fetch_or) seq
+#pragma acc routine(__atomic_fetch_nand) seq
+#pragma acc routine(__atomic_add_fetch) seq
+#pragma acc routine(__atomic_sub_fetch) seq
+#pragma acc routine(__atomic_and_fetch) seq
+#pragma acc routine(__atomic_xor_fetch) seq
+#pragma acc routine(__atomic_or_fetch) seq
+#pragma acc routine(__atomic_nand_fetch) seq
+#endif
+
 DESUL_IMPL_GCC_HOST_ATOMIC_FETCH_OP_INTEGRAL(add)
 DESUL_IMPL_GCC_HOST_ATOMIC_FETCH_OP_INTEGRAL(sub)
 DESUL_IMPL_GCC_HOST_ATOMIC_FETCH_OP_INTEGRAL(and)

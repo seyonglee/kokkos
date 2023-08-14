@@ -128,10 +128,15 @@ static constexpr bool desul_impl_omp_on_host() { return false; }
 #endif
 
 #if defined(DESUL_HAVE_OPENACC_ATOMICS)
-#define DESUL_IF_ON_DEVICE(CODE) \
-  { DESUL_IMPL_STRIP_PARENS(CODE) }
-#define DESUL_IF_ON_HOST(CODE) \
-  {}
+#include <openacc.h>
+#define DESUL_IF_ON_DEVICE(CODE)                 \
+  if (acc_on_device(acc_device_not_host)) {      \
+    DESUL_IMPL_STRIP_PARENS(CODE)                \
+  }
+#define DESUL_IF_ON_HOST(CODE)                   \
+  else {                                         \
+    DESUL_IMPL_STRIP_PARENS(CODE)                \
+  }
 #define DESUL_ACC_ROUTINE_DIRECTIVE _Pragma("acc routine seq")
 #else
 #define DESUL_ACC_ROUTINE_DIRECTIVE 

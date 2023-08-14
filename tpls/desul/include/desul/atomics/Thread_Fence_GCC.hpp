@@ -14,6 +14,10 @@ SPDX-License-Identifier: (BSD-3-Clause)
 namespace desul {
 namespace Impl {
 
+#if defined(DESUL_HAVE_OPENACC_ATOMICS) && defined(__NVCOMPILER)
+#pragma acc routine(__atomic_thread_fence) seq
+#endif
+
 template <class MemoryOrder, class MemoryScope>
 void host_atomic_thread_fence(MemoryOrder, MemoryScope) {
   __atomic_thread_fence(GCCMemoryOrder<MemoryOrder>::value);

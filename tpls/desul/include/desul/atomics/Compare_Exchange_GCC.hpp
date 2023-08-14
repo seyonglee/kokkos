@@ -40,6 +40,10 @@ struct host_atomic_exchange_available_gcc {
 #pragma GCC diagnostic ignored "-Watomic-alignment"
 #endif
 
+#if defined(DESUL_HAVE_OPENACC_ATOMICS) && defined(__NVCOMPILER)
+#pragma acc routine(__atomic_exchange) seq
+#endif
+
 template <class T, class MemoryOrder, class MemoryScope>
 std::enable_if_t<host_atomic_exchange_available_gcc<T>::value, T> host_atomic_exchange(
     T* dest, T value, MemoryOrder, MemoryScope) {
@@ -47,6 +51,10 @@ std::enable_if_t<host_atomic_exchange_available_gcc<T>::value, T> host_atomic_ex
   __atomic_exchange(dest, &value, &return_val, GCCMemoryOrder<MemoryOrder>::value);
   return return_val;
 }
+
+#if defined(DESUL_HAVE_OPENACC_ATOMICS) && defined(__NVCOMPILER)
+#pragma acc routine(__atomic_compare_exchange) seq
+#endif
 
 // Failure mode for host_atomic_compare_exchange_n cannot be RELEASE nor ACQREL so
 // Those two get handled separately.

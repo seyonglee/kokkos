@@ -28,6 +28,9 @@ struct OpenACC_Traits {
 #elif defined(KOKKOS_ARCH_AMD_GPU)
   static constexpr acc_device_t dev_type     = acc_device_radeon;
   static constexpr bool may_fallback_to_host = false;
+#elif defined(KOKKOS_OPENACC_WITHOUT_GPU)
+  static constexpr acc_device_t dev_type     = acc_device_host;
+  static constexpr bool may_fallback_to_host = true;
 #else
   static constexpr acc_device_t dev_type     = acc_device_not_host;
   static constexpr bool may_fallback_to_host = true;

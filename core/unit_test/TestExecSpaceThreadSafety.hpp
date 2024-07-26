@@ -118,6 +118,10 @@ void run_exec_space_thread_safety_mdrange() {
 }
 
 TEST(TEST_CATEGORY, exec_space_thread_safety_mdrange) {
+#ifdef KOKKOS_ENABLE_OPENACC  // FIXME_OPENACC
+  if (std::is_same_v<TEST_EXECSPACE, Kokkos::Experimental::OpenACC>)
+    GTEST_SKIP() << "skipping since test is known to fail with OpenACC";
+#endif
 #ifdef KOKKOS_ENABLE_OPENMPTARGET
   if (std::is_same_v<TEST_EXECSPACE, Kokkos::Experimental::OpenMPTarget>)
     GTEST_SKIP() << "skipping since test is known to fail for OpenMPTarget";

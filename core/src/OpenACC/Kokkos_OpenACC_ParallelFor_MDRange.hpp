@@ -22,6 +22,18 @@
 #include <OpenACC/Kokkos_OpenACC_MDRangePolicy.hpp>
 #include <Kokkos_Parallel.hpp>
 
+// NVHPC 23.7 fails to compile gang(static:*) here with:
+//
+//  NVC++-S-0155-Compiler failed to translate accelerator region (see -Minfo
+//  messages): Unexpected flow graph
+//
+// However, performance under Clacc benefits from it.
+#ifdef KOKKOS_COMPILER_CLANG
+#define KOKKOS_IMPL_OPENACC_PARALLEL_FOR_MDRANGE_GANG gang(static : *)
+#else
+#define KOKKOS_IMPL_OPENACC_PARALLEL_FOR_MDRANGE_GANG gang
+#endif
+
 namespace Kokkos::Experimental::Impl {
 
 template <class Functor>
@@ -34,12 +46,27 @@ void OpenACCParallelForMDRangePolicy(OpenACCCollapse, OpenACCIterateLeft,
   int end1   = end[1];
   int begin0 = begin[0];
   int end0   = end[0];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
 // clang-format off
-#pragma acc parallel loop gang vector collapse(2) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i1 = begin1; i1 < end1; ++i1) {
+#pragma acc parallel loop KOKKOS_IMPL_OPENACC_PARALLEL_FOR_MDRANGE_GANG vector copyin(functor) async(async_arg)
+    // clang-format on
     for (auto i0 = begin0; i0 < end0; ++i0) {
-      functor(i0, i1);
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        functor(i0, i1);
+      }
+    }
+  } else {
+// clang-format off
+#pragma acc parallel loop KOKKOS_IMPL_OPENACC_PARALLEL_FOR_MDRANGE_GANG vector collapse(2) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i1 = begin1; i1 < end1; ++i1) {
+      for (auto i0 = begin0; i0 < end0; ++i0) {
+        functor(i0, i1);
+      }
     }
   }
 }
@@ -54,12 +81,27 @@ void OpenACCParallelForMDRangePolicy(OpenACCCollapse, OpenACCIterateRight,
   int end0   = end[0];
   int begin1 = begin[1];
   int end1   = end[1];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i1 = begin0; i1 < end1; ++i1) {
+      for (auto i0 = begin0; i0 < end0; ++i0) {
+        functor(i0, i1);
+      }
+    }
+  } else {
 // clang-format off
 #pragma acc parallel loop gang vector collapse(2) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i0 = begin0; i0 < end0; ++i0) {
-    for (auto i1 = begin1; i1 < end1; ++i1) {
-      functor(i0, i1);
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        functor(i0, i1);
+      }
     }
   }
 }
@@ -77,35 +119,65 @@ void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateLeft,
   int end1   = end[1];
   int begin0 = begin[0];
   int end0   = end[0];
-// clang-format off
-#pragma acc parallel loop gang vector tile(tile0,tile1) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i1 = begin1; i1 < end1; ++i1) {
-    for (auto i0 = begin0; i0 < end0; ++i0) {
-      functor(i0, i1);
-    }
-  }
-}
 
-template <class Functor>
-void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateRight,
-                                     Functor const& functor,
-                                     OpenACCMDRangeBegin<2> const& begin,
-                                     OpenACCMDRangeEnd<2> const& end,
-                                     OpenACCMDRangeTile<2> const& tile,
-                                     int async_arg) {
-  int tile1  = tile[1];
-  int tile0  = tile[0];
-  int begin0 = begin[0];
-  int end0   = end[0];
-  int begin1 = begin[1];
-  int end1   = end[1];
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
 // clang-format off
 #pragma acc parallel loop gang vector tile(tile1,tile0) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i0 = begin0; i0 < end0; ++i0) {
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        functor(i0, i1);
+      }
+    }
+  } else {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile0,tile1) copyin(functor) async(async_arg)
+    // clang-format on
     for (auto i1 = begin1; i1 < end1; ++i1) {
-      functor(i0, i1);
+      for (auto i0 = begin0; i0 < end0; ++i0) {
+        functor(i0, i1);
+      }
+    }
+  }
+}
+
+template <class Functor>
+void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateRight,
+                                     Functor const& functor,
+                                     OpenACCMDRangeBegin<2> const& begin,
+                                     OpenACCMDRangeEnd<2> const& end,
+                                     OpenACCMDRangeTile<2> const& tile,
+                                     int async_arg) {
+  int tile1  = tile[1];
+  int tile0  = tile[0];
+  int begin0 = begin[0];
+  int end0   = end[0];
+  int begin1 = begin[1];
+  int end1   = end[1];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile0,tile1) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i1 = begin1; i1 < end1; ++i1) {
+      for (auto i0 = begin0; i0 < end0; ++i0) {
+        functor(i0, i1);
+      }
+    }
+  } else {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile1,tile0) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        functor(i0, i1);
+      }
     }
   }
 }
@@ -122,13 +194,30 @@ void OpenACCParallelForMDRangePolicy(OpenACCCollapse, OpenACCIterateLeft,
   int end1   = end[1];
   int begin0 = begin[0];
   int end0   = end[0];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          functor(i0, i1, i2);
+        }
+      }
+    }
+  } else {
 // clang-format off
 #pragma acc parallel loop gang vector collapse(3) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i2 = begin2; i2 < end2; ++i2) {
-    for (auto i1 = begin1; i1 < end1; ++i1) {
-      for (auto i0 = begin0; i0 < end0; ++i0) {
-        functor(i0, i1, i2);
+    // clang-format on
+    for (auto i2 = begin2; i2 < end2; ++i2) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i0 = begin0; i0 < end0; ++i0) {
+          functor(i0, i1, i2);
+        }
       }
     }
   }
@@ -146,13 +235,30 @@ void OpenACCParallelForMDRangePolicy(OpenACCCollapse, OpenACCIterateRight,
   int end1   = end[1];
   int begin2 = begin[2];
   int end2   = end[2];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i2 = begin0; i2 < end2; ++i2) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i0 = begin0; i0 < end0; ++i0) {
+          functor(i0, i1, i2);
+        }
+      }
+    }
+  } else {
 // clang-format off
 #pragma acc parallel loop gang vector collapse(3) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i0 = begin0; i0 < end0; ++i0) {
-    for (auto i1 = begin1; i1 < end1; ++i1) {
-      for (auto i2 = begin2; i2 < end2; ++i2) {
-        functor(i0, i1, i2);
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          functor(i0, i1, i2);
+        }
       }
     }
   }
@@ -174,41 +280,75 @@ void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateLeft,
   int end1   = end[1];
   int begin0 = begin[0];
   int end0   = end[0];
-// clang-format off
-#pragma acc parallel loop gang vector tile(tile0,tile1,tile2) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i2 = begin2; i2 < end2; ++i2) {
-    for (auto i1 = begin1; i1 < end1; ++i1) {
-      for (auto i0 = begin0; i0 < end0; ++i0) {
-        functor(i0, i1, i2);
-      }
-    }
-  }
-}
 
-template <class Functor>
-void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateRight,
-                                     Functor const& functor,
-                                     OpenACCMDRangeBegin<3> const& begin,
-                                     OpenACCMDRangeEnd<3> const& end,
-                                     OpenACCMDRangeTile<3> const& tile,
-                                     int async_arg) {
-  int tile2  = tile[2];
-  int tile1  = tile[1];
-  int tile0  = tile[0];
-  int begin0 = begin[0];
-  int end0   = end[0];
-  int begin1 = begin[1];
-  int end1   = end[1];
-  int begin2 = begin[2];
-  int end2   = end[2];
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
 // clang-format off
 #pragma acc parallel loop gang vector tile(tile2,tile1,tile0) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i0 = begin0; i0 < end0; ++i0) {
-    for (auto i1 = begin1; i1 < end1; ++i1) {
-      for (auto i2 = begin2; i2 < end2; ++i2) {
-        functor(i0, i1, i2);
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          functor(i0, i1, i2);
+        }
+      }
+    }
+  } else {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile0,tile1,tile2) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i2 = begin2; i2 < end2; ++i2) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i0 = begin0; i0 < end0; ++i0) {
+          functor(i0, i1, i2);
+        }
+      }
+    }
+  }
+}
+
+template <class Functor>
+void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateRight,
+                                     Functor const& functor,
+                                     OpenACCMDRangeBegin<3> const& begin,
+                                     OpenACCMDRangeEnd<3> const& end,
+                                     OpenACCMDRangeTile<3> const& tile,
+                                     int async_arg) {
+  int tile2  = tile[2];
+  int tile1  = tile[1];
+  int tile0  = tile[0];
+  int begin0 = begin[0];
+  int end0   = end[0];
+  int begin1 = begin[1];
+  int end1   = end[1];
+  int begin2 = begin[2];
+  int end2   = end[2];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile0,tile1,tile2) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i2 = begin2; i2 < end2; ++i2) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i0 = begin0; i0 < end0; ++i0) {
+          functor(i0, i1, i2);
+        }
+      }
+    }
+  } else {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile2,tile1,tile0) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          functor(i0, i1, i2);
+        }
       }
     }
   }
@@ -228,14 +368,33 @@ void OpenACCParallelForMDRangePolicy(OpenACCCollapse, OpenACCIterateLeft,
   int end1   = end[1];
   int begin0 = begin[0];
   int end0   = end[0];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i3 = begin3; i3 < end3; ++i3) {
+            functor(i0, i1, i2, i3);
+          }
+        }
+      }
+    }
+  } else {
 // clang-format off
 #pragma acc parallel loop gang vector collapse(4) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i3 = begin3; i3 < end3; ++i3) {
-    for (auto i2 = begin2; i2 < end2; ++i2) {
-      for (auto i1 = begin1; i1 < end1; ++i1) {
-        for (auto i0 = begin0; i0 < end0; ++i0) {
-          functor(i0, i1, i2, i3);
+    // clang-format on
+    for (auto i3 = begin3; i3 < end3; ++i3) {
+      for (auto i2 = begin2; i2 < end2; ++i2) {
+        for (auto i1 = begin1; i1 < end1; ++i1) {
+          for (auto i0 = begin0; i0 < end0; ++i0) {
+            functor(i0, i1, i2, i3);
+          }
         }
       }
     }
@@ -256,14 +415,33 @@ void OpenACCParallelForMDRangePolicy(OpenACCCollapse, OpenACCIterateRight,
   int end2   = end[2];
   int begin3 = begin[3];
   int end3   = end[3];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i3 = begin3; i3 < end3; ++i3) {
+      for (auto i2 = begin2; i2 < end2; ++i2) {
+        for (auto i1 = begin1; i1 < end1; ++i1) {
+          for (auto i0 = begin0; i0 < end0; ++i0) {
+            functor(i0, i1, i2, i3);
+          }
+        }
+      }
+    }
+  } else {
 // clang-format off
 #pragma acc parallel loop gang vector collapse(4) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i0 = begin0; i0 < end0; ++i0) {
-    for (auto i1 = begin1; i1 < end1; ++i1) {
-      for (auto i2 = begin2; i2 < end2; ++i2) {
-        for (auto i3 = begin3; i3 < end3; ++i3) {
-          functor(i0, i1, i2, i3);
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i3 = begin3; i3 < end3; ++i3) {
+            functor(i0, i1, i2, i3);
+          }
         }
       }
     }
@@ -289,47 +467,85 @@ void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateLeft,
   int end1   = end[1];
   int begin0 = begin[0];
   int end0   = end[0];
-// clang-format off
-#pragma acc parallel loop gang vector tile(tile0,tile1,tile2,tile3) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i3 = begin3; i3 < end3; ++i3) {
-    for (auto i2 = begin2; i2 < end2; ++i2) {
-      for (auto i1 = begin1; i1 < end1; ++i1) {
-        for (auto i0 = begin0; i0 < end0; ++i0) {
-          functor(i0, i1, i2, i3);
-        }
-      }
-    }
-  }
-}
 
-template <class Functor>
-void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateRight,
-                                     Functor const& functor,
-                                     OpenACCMDRangeBegin<4> const& begin,
-                                     OpenACCMDRangeEnd<4> const& end,
-                                     OpenACCMDRangeTile<4> const& tile,
-                                     int async_arg) {
-  int tile3  = tile[3];
-  int tile2  = tile[2];
-  int tile1  = tile[1];
-  int tile0  = tile[0];
-  int begin0 = begin[0];
-  int end0   = end[0];
-  int begin1 = begin[1];
-  int end1   = end[1];
-  int begin2 = begin[2];
-  int end2   = end[2];
-  int begin3 = begin[3];
-  int end3   = end[3];
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
 // clang-format off
 #pragma acc parallel loop gang vector tile(tile3,tile2,tile1,tile0) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i0 = begin0; i0 < end0; ++i0) {
-    for (auto i1 = begin1; i1 < end1; ++i1) {
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i3 = begin3; i3 < end3; ++i3) {
+            functor(i0, i1, i2, i3);
+          }
+        }
+      }
+    }
+  } else {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile0,tile1,tile2,tile3) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i3 = begin3; i3 < end3; ++i3) {
       for (auto i2 = begin2; i2 < end2; ++i2) {
-        for (auto i3 = begin3; i3 < end3; ++i3) {
-          functor(i0, i1, i2, i3);
+        for (auto i1 = begin1; i1 < end1; ++i1) {
+          for (auto i0 = begin0; i0 < end0; ++i0) {
+            functor(i0, i1, i2, i3);
+          }
+        }
+      }
+    }
+  }
+}
+
+template <class Functor>
+void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateRight,
+                                     Functor const& functor,
+                                     OpenACCMDRangeBegin<4> const& begin,
+                                     OpenACCMDRangeEnd<4> const& end,
+                                     OpenACCMDRangeTile<4> const& tile,
+                                     int async_arg) {
+  int tile3  = tile[3];
+  int tile2  = tile[2];
+  int tile1  = tile[1];
+  int tile0  = tile[0];
+  int begin0 = begin[0];
+  int end0   = end[0];
+  int begin1 = begin[1];
+  int end1   = end[1];
+  int begin2 = begin[2];
+  int end2   = end[2];
+  int begin3 = begin[3];
+  int end3   = end[3];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile0,tile1,tile2,tile3) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i3 = begin3; i3 < end3; ++i3) {
+      for (auto i2 = begin2; i2 < end2; ++i2) {
+        for (auto i1 = begin1; i1 < end1; ++i1) {
+          for (auto i0 = begin0; i0 < end0; ++i0) {
+            functor(i0, i1, i2, i3);
+          }
+        }
+      }
+    }
+  } else {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile3,tile2,tile1,tile0) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i3 = begin3; i3 < end3; ++i3) {
+            functor(i0, i1, i2, i3);
+          }
         }
       }
     }
@@ -352,15 +568,36 @@ void OpenACCParallelForMDRangePolicy(OpenACCCollapse, OpenACCIterateLeft,
   int end1   = end[1];
   int begin0 = begin[0];
   int end0   = end[0];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i3 = begin3; i3 < end3; ++i3) {
+            for (auto i4 = begin4; i4 < end4; ++i4) {
+              functor(i0, i1, i2, i3, i4);
+            }
+          }
+        }
+      }
+    }
+  } else {
 // clang-format off
 #pragma acc parallel loop gang vector collapse(5) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i4 = begin4; i4 < end4; ++i4) {
-    for (auto i3 = begin3; i3 < end3; ++i3) {
-      for (auto i2 = begin2; i2 < end2; ++i2) {
-        for (auto i1 = begin1; i1 < end1; ++i1) {
-          for (auto i0 = begin0; i0 < end0; ++i0) {
-            functor(i0, i1, i2, i3, i4);
+    // clang-format on
+    for (auto i4 = begin4; i4 < end4; ++i4) {
+      for (auto i3 = begin3; i3 < end3; ++i3) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i1 = begin1; i1 < end1; ++i1) {
+            for (auto i0 = begin0; i0 < end0; ++i0) {
+              functor(i0, i1, i2, i3, i4);
+            }
           }
         }
       }
@@ -384,15 +621,36 @@ void OpenACCParallelForMDRangePolicy(OpenACCCollapse, OpenACCIterateRight,
   int end3   = end[3];
   int begin4 = begin[4];
   int end4   = end[4];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i4 = begin4; i4 < end4; ++i4) {
+      for (auto i3 = begin3; i3 < end3; ++i3) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i1 = begin1; i1 < end1; ++i1) {
+            for (auto i0 = begin0; i0 < end0; ++i0) {
+              functor(i0, i1, i2, i3, i4);
+            }
+          }
+        }
+      }
+    }
+  } else {
 // clang-format off
 #pragma acc parallel loop gang vector collapse(5) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i0 = begin0; i0 < end0; ++i0) {
-    for (auto i1 = begin1; i1 < end1; ++i1) {
-      for (auto i2 = begin2; i2 < end2; ++i2) {
-        for (auto i3 = begin3; i3 < end3; ++i3) {
-          for (auto i4 = begin4; i4 < end4; ++i4) {
-            functor(i0, i1, i2, i3, i4);
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i3 = begin3; i3 < end3; ++i3) {
+            for (auto i4 = begin4; i4 < end4; ++i4) {
+              functor(i0, i1, i2, i3, i4);
+            }
           }
         }
       }
@@ -422,53 +680,95 @@ void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateLeft,
   int end1   = end[1];
   int begin0 = begin[0];
   int end0   = end[0];
-// clang-format off
-#pragma acc parallel loop gang vector tile(tile0,tile1,tile2,tile3,tile4) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i4 = begin4; i4 < end4; ++i4) {
-    for (auto i3 = begin3; i3 < end3; ++i3) {
-      for (auto i2 = begin2; i2 < end2; ++i2) {
-        for (auto i1 = begin1; i1 < end1; ++i1) {
-          for (auto i0 = begin0; i0 < end0; ++i0) {
-            functor(i0, i1, i2, i3, i4);
-          }
-        }
-      }
-    }
-  }
-}
 
-template <class Functor>
-void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateRight,
-                                     Functor const& functor,
-                                     OpenACCMDRangeBegin<5> const& begin,
-                                     OpenACCMDRangeEnd<5> const& end,
-                                     OpenACCMDRangeTile<5> const& tile,
-                                     int async_arg) {
-  int tile4  = tile[4];
-  int tile3  = tile[3];
-  int tile2  = tile[2];
-  int tile1  = tile[1];
-  int tile0  = tile[0];
-  int begin0 = begin[0];
-  int end0   = end[0];
-  int begin1 = begin[1];
-  int end1   = end[1];
-  int begin2 = begin[2];
-  int end2   = end[2];
-  int begin3 = begin[3];
-  int end3   = end[3];
-  int begin4 = begin[4];
-  int end4   = end[4];
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
 // clang-format off
 #pragma acc parallel loop gang vector tile(tile4,tile3,tile2,tile1,tile0) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i0 = begin0; i0 < end0; ++i0) {
-    for (auto i1 = begin1; i1 < end1; ++i1) {
-      for (auto i2 = begin2; i2 < end2; ++i2) {
-        for (auto i3 = begin3; i3 < end3; ++i3) {
-          for (auto i4 = begin4; i4 < end4; ++i4) {
-            functor(i0, i1, i2, i3, i4);
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i3 = begin3; i3 < end3; ++i3) {
+            for (auto i4 = begin4; i4 < end4; ++i4) {
+              functor(i0, i1, i2, i3, i4);
+            }
+          }
+        }
+      }
+    }
+  } else {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile0,tile1,tile2,tile3,tile4) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i4 = begin4; i4 < end4; ++i4) {
+      for (auto i3 = begin3; i3 < end3; ++i3) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i1 = begin1; i1 < end1; ++i1) {
+            for (auto i0 = begin0; i0 < end0; ++i0) {
+              functor(i0, i1, i2, i3, i4);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+template <class Functor>
+void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateRight,
+                                     Functor const& functor,
+                                     OpenACCMDRangeBegin<5> const& begin,
+                                     OpenACCMDRangeEnd<5> const& end,
+                                     OpenACCMDRangeTile<5> const& tile,
+                                     int async_arg) {
+  int tile4  = tile[4];
+  int tile3  = tile[3];
+  int tile2  = tile[2];
+  int tile1  = tile[1];
+  int tile0  = tile[0];
+  int begin0 = begin[0];
+  int end0   = end[0];
+  int begin1 = begin[1];
+  int end1   = end[1];
+  int begin2 = begin[2];
+  int end2   = end[2];
+  int begin3 = begin[3];
+  int end3   = end[3];
+  int begin4 = begin[4];
+  int end4   = end[4];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile0,tile1,tile2,tile3,tile4) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i4 = begin4; i4 < end4; ++i4) {
+      for (auto i3 = begin3; i3 < end3; ++i3) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i1 = begin1; i1 < end1; ++i1) {
+            for (auto i0 = begin0; i0 < end0; ++i0) {
+              functor(i0, i1, i2, i3, i4);
+            }
+          }
+        }
+      }
+    }
+  } else {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile4,tile3,tile2,tile1,tile0) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i3 = begin3; i3 < end3; ++i3) {
+            for (auto i4 = begin4; i4 < end4; ++i4) {
+              functor(i0, i1, i2, i3, i4);
+            }
           }
         }
       }
@@ -494,16 +794,39 @@ void OpenACCParallelForMDRangePolicy(OpenACCCollapse, OpenACCIterateLeft,
   int end1   = end[1];
   int begin0 = begin[0];
   int end0   = end[0];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i3 = begin3; i3 < end3; ++i3) {
+            for (auto i4 = begin4; i4 < end4; ++i4) {
+              for (auto i5 = begin5; i5 < end5; ++i5) {
+                functor(i0, i1, i2, i3, i4, i5);
+              }
+            }
+          }
+        }
+      }
+    }
+  } else {
 // clang-format off
 #pragma acc parallel loop gang vector collapse(6) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i5 = begin5; i5 < end5; ++i5) {
-    for (auto i4 = begin4; i4 < end4; ++i4) {
-      for (auto i3 = begin3; i3 < end3; ++i3) {
-        for (auto i2 = begin2; i2 < end2; ++i2) {
-          for (auto i1 = begin1; i1 < end1; ++i1) {
-            for (auto i0 = begin0; i0 < end0; ++i0) {
-              functor(i0, i1, i2, i3, i4, i5);
+    // clang-format on
+    for (auto i5 = begin5; i5 < end5; ++i5) {
+      for (auto i4 = begin4; i4 < end4; ++i4) {
+        for (auto i3 = begin3; i3 < end3; ++i3) {
+          for (auto i2 = begin2; i2 < end2; ++i2) {
+            for (auto i1 = begin1; i1 < end1; ++i1) {
+              for (auto i0 = begin0; i0 < end0; ++i0) {
+                functor(i0, i1, i2, i3, i4, i5);
+              }
             }
           }
         }
@@ -530,16 +853,39 @@ void OpenACCParallelForMDRangePolicy(OpenACCCollapse, OpenACCIterateRight,
   int end4   = end[4];
   int begin5 = begin[5];
   int end5   = end[5];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i5 = begin5; i5 < end5; ++i5) {
+      for (auto i4 = begin4; i4 < end4; ++i4) {
+        for (auto i3 = begin3; i3 < end3; ++i3) {
+          for (auto i2 = begin2; i2 < end2; ++i2) {
+            for (auto i1 = begin1; i1 < end1; ++i1) {
+              for (auto i0 = begin0; i0 < end0; ++i0) {
+                functor(i0, i1, i2, i3, i4, i5);
+              }
+            }
+          }
+        }
+      }
+    }
+  } else {
 // clang-format off
 #pragma acc parallel loop gang vector collapse(6) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i0 = begin0; i0 < end0; ++i0) {
-    for (auto i1 = begin1; i1 < end1; ++i1) {
-      for (auto i2 = begin2; i2 < end2; ++i2) {
-        for (auto i3 = begin3; i3 < end3; ++i3) {
-          for (auto i4 = begin4; i4 < end4; ++i4) {
-            for (auto i5 = begin5; i5 < end5; ++i5) {
-              functor(i0, i1, i2, i3, i4, i5);
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i3 = begin3; i3 < end3; ++i3) {
+            for (auto i4 = begin4; i4 < end4; ++i4) {
+              for (auto i5 = begin5; i5 < end5; ++i5) {
+                functor(i0, i1, i2, i3, i4, i5);
+              }
             }
           }
         }
@@ -573,16 +919,39 @@ void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateLeft,
   int end1   = end[1];
   int begin0 = begin[0];
   int end0   = end[0];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile5,tile4,tile3,tile2,tile1,tile0) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i3 = begin3; i3 < end3; ++i3) {
+            for (auto i4 = begin4; i4 < end4; ++i4) {
+              for (auto i5 = begin5; i5 < end5; ++i5) {
+                functor(i0, i1, i2, i3, i4, i5);
+              }
+            }
+          }
+        }
+      }
+    }
+  } else {
 // clang-format off
 #pragma acc parallel loop gang vector tile(tile0,tile1,tile2,tile3,tile4,tile5) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i5 = begin5; i5 < end5; ++i5) {
-    for (auto i4 = begin4; i4 < end4; ++i4) {
-      for (auto i3 = begin3; i3 < end3; ++i3) {
-        for (auto i2 = begin2; i2 < end2; ++i2) {
-          for (auto i1 = begin1; i1 < end1; ++i1) {
-            for (auto i0 = begin0; i0 < end0; ++i0) {
-              functor(i0, i1, i2, i3, i4, i5);
+    // clang-format on
+    for (auto i5 = begin5; i5 < end5; ++i5) {
+      for (auto i4 = begin4; i4 < end4; ++i4) {
+        for (auto i3 = begin3; i3 < end3; ++i3) {
+          for (auto i2 = begin2; i2 < end2; ++i2) {
+            for (auto i1 = begin1; i1 < end1; ++i1) {
+              for (auto i0 = begin0; i0 < end0; ++i0) {
+                functor(i0, i1, i2, i3, i4, i5);
+              }
             }
           }
         }
@@ -616,16 +985,39 @@ void OpenACCParallelForMDRangePolicy(OpenACCTile, OpenACCIterateRight,
   int end4   = end[4];
   int begin5 = begin[5];
   int end5   = end[5];
+
+  acc_device_t target_dev;
+  target_dev = acc_get_device_type();
+
+  if (target_dev == acc_device_host) {
+// clang-format off
+#pragma acc parallel loop gang vector tile(tile0,tile1,tile2,tile3,tile4,tile5) copyin(functor) async(async_arg)
+    // clang-format on
+    for (auto i5 = begin5; i5 < end5; ++i5) {
+      for (auto i4 = begin4; i4 < end4; ++i4) {
+        for (auto i3 = begin3; i3 < end3; ++i3) {
+          for (auto i2 = begin2; i2 < end2; ++i2) {
+            for (auto i1 = begin1; i1 < end1; ++i1) {
+              for (auto i0 = begin0; i0 < end0; ++i0) {
+                functor(i0, i1, i2, i3, i4, i5);
+              }
+            }
+          }
+        }
+      }
+    }
+  } else {
 // clang-format off
 #pragma acc parallel loop gang vector tile(tile5,tile4,tile3,tile2,tile1,tile0) copyin(functor) async(async_arg)
-  // clang-format on
-  for (auto i0 = begin0; i0 < end0; ++i0) {
-    for (auto i1 = begin1; i1 < end1; ++i1) {
-      for (auto i2 = begin2; i2 < end2; ++i2) {
-        for (auto i3 = begin3; i3 < end3; ++i3) {
-          for (auto i4 = begin4; i4 < end4; ++i4) {
-            for (auto i5 = begin5; i5 < end5; ++i5) {
-              functor(i0, i1, i2, i3, i4, i5);
+    // clang-format on
+    for (auto i0 = begin0; i0 < end0; ++i0) {
+      for (auto i1 = begin1; i1 < end1; ++i1) {
+        for (auto i2 = begin2; i2 < end2; ++i2) {
+          for (auto i3 = begin3; i3 < end3; ++i3) {
+            for (auto i4 = begin4; i4 < end4; ++i4) {
+              for (auto i5 = begin5; i5 < end5; ++i5) {
+                functor(i0, i1, i2, i3, i4, i5);
+              }
             }
           }
         }

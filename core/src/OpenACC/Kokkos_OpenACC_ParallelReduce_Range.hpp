@@ -24,6 +24,14 @@
 #include <Kokkos_Parallel.hpp>
 #include <type_traits>
 
+// When compiled with Clacc, a larger chunk size helps performance, but it hurts
+// performance when compiled with NVHPC.
+#ifdef KOKKOS_COMPILER_CLANG
+# define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_CHUNK_FACTOR 256
+#else
+# define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_CHUNK_FACTOR 1
+#endif
+
 namespace Kokkos::Experimental::Impl {
 
 // primary template: catch-all non-implemented custom reducers
@@ -125,9 +133,9 @@ class Kokkos::Impl::ParallelReduce<CombinedFunctorReducerType,
        NVC++-S-1067-Cannot determine bounds for array - functor */        \
     auto const functor(afunctor);                                         \
     auto val = aval;                                                      \
-    if (chunk_size >= 1) {                                                \
-      /* clang-format off */ \
-      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:chunk_size) vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                            \
+    if (chunk_size > 1) {                                                 \
+      /* clang-format off */                                              \
+      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:chunk_size * KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_CHUNK_FACTOR) vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                            \
       /* clang-format on */                                               \
       for (auto i = begin; i < end; i++) {                                \
         functor(i, val);                                                  \
@@ -155,7 +163,7 @@ class Kokkos::Impl::ParallelReduce<CombinedFunctorReducerType,
        NVC++-S-1067-Cannot determine bounds for array - functor */        \
     auto const functor(afunctor);                                         \
     auto val = aval;                                                      \
-    if (chunk_size >= 1) {                                                \
+    if (chunk_size > 1) {                                                 \
       /* clang-format off */ \
       KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:chunk_size) vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                            \
       /* clang-format on */                                               \

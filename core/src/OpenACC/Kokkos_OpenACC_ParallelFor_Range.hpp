@@ -25,9 +25,9 @@
 // When compiled with Clacc, a larger chunk size helps performance, but it hurts
 // performance when compiled with NVHPC.
 #ifdef KOKKOS_COMPILER_CLANG
-# define KOKKOS_IMPL_OPENACC_PARALLEL_FOR_RANGE_CHUNK_FACTOR 256
+#define KOKKOS_IMPL_OPENACC_PARALLEL_FOR_RANGE_CHUNK_FACTOR 256
 #else
-# define KOKKOS_IMPL_OPENACC_PARALLEL_FOR_RANGE_CHUNK_FACTOR 1
+#define KOKKOS_IMPL_OPENACC_PARALLEL_FOR_RANGE_CHUNK_FACTOR 1
 #endif
 
 namespace Kokkos::Experimental::Impl {

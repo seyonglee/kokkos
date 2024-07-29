@@ -616,8 +616,8 @@ class Kokkos::Impl::ParallelReduce<CombinedFunctorReducerType,
     }                                                                             \
     acc_wait(async_arg);                                                          \
     aval = val;                                                                   \
-}                                                                                 \
-}  // namespace Kokkos::Experimental::Impl
+  }                                                                               \
+  }  // namespace Kokkos::Experimental::Impl
 
 #define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_MDRANGE_HELPER(REDUCER, OPERATOR) \
   KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_DISPATCH_ITERATE(REDUCER, OPERATOR)     \

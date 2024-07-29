@@ -162,7 +162,7 @@ void run_exec_space_thread_safety_team_policy() {
 
 TEST(TEST_CATEGORY, exec_space_thread_safety_team_policy) {
 #ifdef KOKKOS_ENABLE_OPENACC  // FIXME_OPENACC
-#ifdef KOKKOS_COMPILER_CLANG  
+#ifdef KOKKOS_COMPILER_CLANG
   if (std::is_same_v<TEST_EXECSPACE, Kokkos::Experimental::OpenACC>)
     GTEST_SKIP() << "skipping since test is known to fail with OpenACC";
 #endif

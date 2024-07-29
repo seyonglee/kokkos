@@ -27,9 +27,9 @@
 // When compiled with Clacc, a larger chunk size helps performance, but it hurts
 // performance when compiled with NVHPC.
 #ifdef KOKKOS_COMPILER_CLANG
-# define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_CHUNK_FACTOR 256
+#define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_CHUNK_FACTOR 256
 #else
-# define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_CHUNK_FACTOR 1
+#define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_CHUNK_FACTOR 1
 #endif
 
 namespace Kokkos::Experimental::Impl {
@@ -119,68 +119,68 @@ class Kokkos::Impl::ParallelReduce<CombinedFunctorReducerType,
   }
 };
 
-#define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_DISPATCH_SCHEDULE(REDUCER,    \
-                                                              OPERATOR)   \
-  namespace Kokkos::Experimental::Impl {                                  \
-  template <class IndexType, class ValueType, class Functor>              \
-  void OpenACCParallelReduce##REDUCER(Schedule<Static>, int chunk_size,   \
-                                      IndexType begin, IndexType end,     \
-                                      ValueType& aval,                    \
-                                      Functor const& afunctor,            \
-                                      int async_arg) {                    \
-    /* FIXME_OPENACC FIXME_NVHPC workaround compiler bug (incorrect scope \
-       analysis)                                                          \
-       NVC++-S-1067-Cannot determine bounds for array - functor */        \
-    auto const functor(afunctor);                                         \
-    auto val = aval;                                                      \
-    if (chunk_size > 1) {                                                 \
+#define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_DISPATCH_SCHEDULE(REDUCER,      \
+                                                              OPERATOR)     \
+  namespace Kokkos::Experimental::Impl {                                    \
+  template <class IndexType, class ValueType, class Functor>                \
+  void OpenACCParallelReduce##REDUCER(Schedule<Static>, int chunk_size,     \
+                                      IndexType begin, IndexType end,       \
+                                      ValueType& aval,                      \
+                                      Functor const& afunctor,              \
+                                      int async_arg) {                      \
+    /* FIXME_OPENACC FIXME_NVHPC workaround compiler bug (incorrect scope   \
+       analysis)                                                            \
+       NVC++-S-1067-Cannot determine bounds for array - functor */          \
+    auto const functor(afunctor);                                           \
+    auto val = aval;                                                        \
+    if (chunk_size > 1) {                                                   \
       /* clang-format off */                                              \
-      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:chunk_size * KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_CHUNK_FACTOR) vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                            \
-      /* clang-format on */                                               \
-      for (auto i = begin; i < end; i++) {                                \
-        functor(i, val);                                                  \
-      }                                                                   \
-    } else {                                                              \
+      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:chunk_size * KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_CHUNK_FACTOR) vector reduction(OPERATOR:val) copyin(functor) async(async_arg)) \
+      /* clang-format on */                                                 \
+      for (auto i = begin; i < end; i++) {                                  \
+        functor(i, val);                                                    \
+      }                                                                     \
+    } else {                                                                \
       /* clang-format off */ \
-      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:*) vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                            \
-      /* clang-format on */                                               \
-      for (auto i = begin; i < end; i++) {                                \
-        functor(i, val);                                                  \
-      }                                                                   \
-    }                                                                     \
-    acc_wait(async_arg);                                                  \
-    aval = val;                                                           \
-  }                                                                       \
-                                                                          \
-  template <class IndexType, class ValueType, class Functor>              \
-  void OpenACCParallelReduce##REDUCER(Schedule<Dynamic>, int chunk_size,  \
-                                      IndexType begin, IndexType end,     \
-                                      ValueType& aval,                    \
-                                      Functor const& afunctor,            \
-                                      int async_arg) {                    \
-    /* FIXME_OPENACC FIXME_NVHPC workaround compiler bug (incorrect scope \
-       analysis)                                                          \
-       NVC++-S-1067-Cannot determine bounds for array - functor */        \
-    auto const functor(afunctor);                                         \
-    auto val = aval;                                                      \
-    if (chunk_size > 1) {                                                 \
+      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:*) vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                              \
+      /* clang-format on */                                                 \
+      for (auto i = begin; i < end; i++) {                                  \
+        functor(i, val);                                                    \
+      }                                                                     \
+    }                                                                       \
+    acc_wait(async_arg);                                                    \
+    aval = val;                                                             \
+  }                                                                         \
+                                                                            \
+  template <class IndexType, class ValueType, class Functor>                \
+  void OpenACCParallelReduce##REDUCER(Schedule<Dynamic>, int chunk_size,    \
+                                      IndexType begin, IndexType end,       \
+                                      ValueType& aval,                      \
+                                      Functor const& afunctor,              \
+                                      int async_arg) {                      \
+    /* FIXME_OPENACC FIXME_NVHPC workaround compiler bug (incorrect scope   \
+       analysis)                                                            \
+       NVC++-S-1067-Cannot determine bounds for array - functor */          \
+    auto const functor(afunctor);                                           \
+    auto val = aval;                                                        \
+    if (chunk_size > 1) {                                                   \
       /* clang-format off */ \
-      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:chunk_size) vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                            \
-      /* clang-format on */                                               \
-      for (auto i = begin; i < end; i++) {                                \
-        functor(i, val);                                                  \
-      }                                                                   \
-    } else {                                                              \
+      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:chunk_size) vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                              \
+      /* clang-format on */                                                 \
+      for (auto i = begin; i < end; i++) {                                  \
+        functor(i, val);                                                    \
+      }                                                                     \
+    } else {                                                                \
       /* clang-format off */ \
-      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                            \
-      /* clang-format on */                                               \
-      for (auto i = begin; i < end; i++) {                                \
-        functor(i, val);                                                  \
-      }                                                                   \
-    }                                                                     \
-    acc_wait(async_arg);                                                  \
-    aval = val;                                                           \
-  }                                                                       \
+      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                              \
+      /* clang-format on */                                                 \
+      for (auto i = begin; i < end; i++) {                                  \
+        functor(i, val);                                                    \
+      }                                                                     \
+    }                                                                       \
+    acc_wait(async_arg);                                                    \
+    aval = val;                                                             \
+  }                                                                         \
   }  // namespace Kokkos::Experimental::Impl
 
 #define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_HELPER(REDUCER, OPERATOR)          \

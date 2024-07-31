@@ -24,12 +24,12 @@
 #include <Kokkos_Parallel.hpp>
 #include <type_traits>
 
-// When compiled with Clacc, a larger chunk size helps performance, but it hurts
-// performance when compiled with NVHPC.
-#ifdef KOKKOS_COMPILER_CLANG
-#define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_CHUNK_FACTOR 256
+// FIXME_OPENACC FIXME_NVHPC NVHPC 24.5 generates very inefficient code for
+// gang(static:*)
+#ifdef KOKKOS_COMPILER_NVHPC
+#define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_GANG gang(static : 32)
 #else
-#define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_CHUNK_FACTOR 1
+#define KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_GANG gang(static : *)
 #endif
 
 namespace Kokkos::Experimental::Impl {
@@ -133,16 +133,16 @@ class Kokkos::Impl::ParallelReduce<CombinedFunctorReducerType,
        NVC++-S-1067-Cannot determine bounds for array - functor */          \
     auto const functor(afunctor);                                           \
     auto val = aval;                                                        \
-    if (chunk_size > 1) {                                                   \
+    if (chunk_size >= OpenACC_Traits::WarpSize) {                           \
       /* clang-format off */                                              \
-      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:chunk_size * KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_CHUNK_FACTOR) vector reduction(OPERATOR:val) copyin(functor) async(async_arg)) \
+      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:chunk_size) vector reduction(OPERATOR:val) copyin(functor) async(async_arg)) \
       /* clang-format on */                                                 \
       for (auto i = begin; i < end; i++) {                                  \
         functor(i, val);                                                    \
       }                                                                     \
     } else {                                                                \
       /* clang-format off */ \
-      KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:*) vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                              \
+      KOKKOS_IMPL_ACC_PRAGMA(parallel loop KOKKOS_IMPL_OPENACC_PARALLEL_REDUCE_RANGE_GANG vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                              \
       /* clang-format on */                                                 \
       for (auto i = begin; i < end; i++) {                                  \
         functor(i, val);                                                    \
@@ -163,7 +163,7 @@ class Kokkos::Impl::ParallelReduce<CombinedFunctorReducerType,
        NVC++-S-1067-Cannot determine bounds for array - functor */          \
     auto const functor(afunctor);                                           \
     auto val = aval;                                                        \
-    if (chunk_size > 1) {                                                   \
+    if (chunk_size >= OpenACC_Traits::WarpSize) {                           \
       /* clang-format off */ \
       KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang(static:chunk_size) vector reduction(OPERATOR:val) copyin(functor) async(async_arg))                                              \
       /* clang-format on */                                                 \

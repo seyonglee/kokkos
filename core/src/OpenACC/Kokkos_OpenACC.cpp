@@ -70,6 +70,7 @@ void Kokkos::Experimental::OpenACC::impl_initialize(
         acc_get_device_num(acc_device_host);
   } else {
     using Kokkos::Impl::get_visible_devices;
+    acc_set_device_type(Impl::OpenACC_Traits::dev_type);
     std::vector<int> const& visible_devices = get_visible_devices();
     using Kokkos::Impl::get_gpu;
     int const dev_num = get_gpu(settings).value_or(visible_devices[0]);

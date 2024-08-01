@@ -21,6 +21,9 @@
 #include <impl/Kokkos_Traits.hpp>
 #include <OpenACC/Kokkos_OpenACC.hpp>
 #include <Kokkos_ExecPolicy.hpp>
+#ifdef KOKKOS_COMPILER_CLANG
+#include <omp.h>
+#endif
 
 //----------------------------------------------------------------------------
 //----------------------------------------------------------------------------
@@ -141,7 +144,11 @@ class OpenACCTeamMember {
 #ifdef KOKKOS_COMPILER_NVHPC
     m_team_rank = __pgi_vectoridx();
 #else
+#ifdef KOKKOS_COMPILER_CLANG
+    m_team_rank = omp_get_thread_num();
+#else
     m_team_rank = 0;
+#endif
 #endif
   }
 

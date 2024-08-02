@@ -22,5 +22,10 @@
 
 #include <impl/Kokkos_SharedAlloc_timpl.hpp>
 
+#if defined(KOKKOS_OPENACC_WITHOUT_GPU)
+KOKKOS_IMPL_SHARED_ALLOCATION_RECORD_EXPLICIT_INSTANTIATION(
+    Kokkos::Experimental::OpenACCSpace);
+#else
 KOKKOS_IMPL_HOST_INACCESSIBLE_SHARED_ALLOCATION_RECORD_EXPLICIT_INSTANTIATION(
     Kokkos::Experimental::OpenACCSpace);
+#endif

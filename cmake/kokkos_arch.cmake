@@ -842,13 +842,15 @@ IF (KOKKOS_ENABLE_OPENACC)
     ENDIF()
     COMPILER_SPECIFIC_LIBS(Clang -lamdhip64)
   ELSE()
-    COMPILER_SPECIFIC_FLAGS(
-      NVHPC -acc
-    )
     # When not compiling for offload to any GPU, we're compiling for kernel
     # execution on the host.  In that case, memory is shared between the OpenACC
     # space and the host space.
-    # TODO: Does something like this also make sense for NVHPC?
+    COMPILER_SPECIFIC_FLAGS(
+      NVHPC -acc=multicore
+    )
+    COMPILER_SPECIFIC_DEFS(
+      NVHPC KOKKOS_OPENACC_WITHOUT_GPU
+    )
     COMPILER_SPECIFIC_DEFS(
       Clang KOKKOS_OPENACC_WITHOUT_GPU
     )

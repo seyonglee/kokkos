@@ -1449,9 +1449,11 @@ ifeq ($(KOKKOS_INTERNAL_USE_OPENACC), 1)
     # When not compiling for offload to any GPU, we're compiling for kernel
     # execution on the host.  In that case, memory is shared between the OpenACC
     # space and the host space.
-    # TODO: Does something like this also make sense for NVHPC?
     ifeq ($(KOKKOS_INTERNAL_COMPILER_CLANG), 1)
       KOKKOS_CXXFLAGS += -DKOKKOS_OPENACC_WITHOUT_GPU
+    endif
+    ifeq ($(KOKKOS_INTERNAL_COMPILER_NVHPC), 1)
+      KOKKOS_CXXFLAGS += -DKOKKOS_OPENACC_WITHOUT_GPU -acc=multicore
     endif
   endif
 endif

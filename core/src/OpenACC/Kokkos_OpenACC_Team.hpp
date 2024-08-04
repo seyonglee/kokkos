@@ -137,9 +137,9 @@ class OpenACCTeamMember {
                     const int team_size,
                     const int vector_length)  // const TeamPolicyInternal<
                                               // OpenACC, Properties ...> & team
-      : m_team_size(team_size),
-        m_league_rank(league_rank),
+      : m_league_rank(league_rank),
         m_league_size(league_size),
+        m_team_size(team_size),
         m_vector_length(vector_length) {
 #ifdef KOKKOS_COMPILER_NVHPC
     m_team_rank = __pgi_vectoridx();
@@ -151,6 +151,15 @@ class OpenACCTeamMember {
 #endif
 #endif
   }
+
+  OpenACCTeamMember(const int league_rank, const int league_size,
+                    const int team_rank, const int team_size,
+                    const int vector_length)
+      : m_league_rank(league_rank),
+        m_league_size(league_size),
+        m_team_rank(team_rank),
+        m_team_size(team_size),
+        m_vector_length(vector_length) {}
 
   static int team_reduce_size() { return TEAM_REDUCE_SIZE; }
 };

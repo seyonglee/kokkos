@@ -47,13 +47,19 @@ class Kokkos::Impl::ParallelFor<FunctorType, Kokkos::TeamPolicy<Properties...>,
     int const async_arg = m_policy.space().acc_async_queue();
 
     auto const a_functor(m_functor);
-
 #pragma acc parallel loop gang vector num_gangs(league_size) \
     vector_length(team_size* vector_length) copyin(a_functor) async(async_arg)
     for (int i = 0; i < league_size * team_size * vector_length; i++) {
-      int league_id = i / (team_size * vector_length);
-      typename Policy::member_type team(league_id, league_size, team_size,
+#if defined(KOKKOS_OPENACC_WITHOUT_GPU)
+      int league_rank = i / (team_size * vector_length);
+      int team_rank   = i % (team_size * vector_length);
+      typename Policy::member_type team(league_rank, league_size, team_rank,
+                                        team_size, vector_length);
+#else
+      int league_rank = i / (team_size * vector_length);
+      typename Policy::member_type team(league_rank, league_size, team_size,
                                         vector_length);
+#endif
       a_functor(team);
     }
   }
@@ -154,8 +160,8 @@ class Kokkos::Impl::ParallelFor<FunctorType, Kokkos::TeamPolicy<Properties...>,
 #pragma acc parallel loop gang num_gangs(league_size) num_workers(team_size) \
     vector_length(vector_length) copyin(a_functor) async(async_arg)
     for (int i = 0; i < league_size; i++) {
-      int league_id = i;
-      typename Policy::member_type team(league_id, league_size, team_size,
+      int league_rank = i;
+      typename Policy::member_type team(league_rank, league_size, team_size,
                                         vector_length);
       a_functor(team);
     }

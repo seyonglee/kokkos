@@ -70,7 +70,11 @@ class OpenACCTeamMember {
 
   KOKKOS_FUNCTION int league_rank() const { return m_league_rank; }
   KOKKOS_FUNCTION int league_size() const { return m_league_size; }
+#ifdef KOKKOS_COMPILER_CLANG
+  KOKKOS_FUNCTION int team_rank() const { return omp_get_thread_num(); }
+#else
   KOKKOS_FUNCTION int team_rank() const { return m_team_rank; }
+#endif
   KOKKOS_FUNCTION int vector_length() const { return m_vector_length; }
   KOKKOS_FUNCTION int team_size() const { return m_team_size; }
 
@@ -139,8 +143,12 @@ class OpenACCTeamMember {
                                               // OpenACC, Properties ...> & team
       : m_league_rank(league_rank),
         m_league_size(league_size),
-        m_team_size(team_size),
         m_vector_length(vector_length) {
+    if (team_size >= Experimental::Impl::OpenACC_Traits::WarpSize) {
+      m_team_size = team_size;
+    } else {
+      m_team_size = Experimental::Impl::OpenACC_Traits::WarpSize;
+    }
 #ifdef KOKKOS_COMPILER_NVHPC
     m_team_rank = __pgi_vectoridx();
 #else

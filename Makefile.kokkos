@@ -1,7 +1,7 @@
 # Default settings common options.
 
 KOKKOS_VERSION_MAJOR = 4
-KOKKOS_VERSION_MINOR = 3
+KOKKOS_VERSION_MINOR = 4
 KOKKOS_VERSION_PATCH = 99
 KOKKOS_VERSION = $(shell echo $(KOKKOS_VERSION_MAJOR)*10000+$(KOKKOS_VERSION_MINOR)*100+$(KOKKOS_VERSION_PATCH) | bc)
 
@@ -11,9 +11,9 @@ KOKKOS_DEVICES ?= "Threads"
 # Options:
 # Intel:    KNC,KNL,SNB,HSW,BDW,SKL,SKX,ICL,ICX,SPR
 # NVIDIA:   Kepler,Kepler30,Kepler32,Kepler35,Kepler37,Maxwell,Maxwell50,Maxwell52,Maxwell53,Pascal60,Pascal61,Volta70,Volta72,Turing75,Ampere80,Ampere86,Ada89,Hopper90
-# ARM:      ARMv80,ARMv81,ARMv8-ThunderX,ARMv8-TX2,A64FX
+# ARM:      ARMv80,ARMv81,ARMv8-ThunderX,ARMv8-TX2,A64FX,ARMv9-Grace
 # IBM:      Power8,Power9
-# AMD-GPUS: AMD_GFX906,AMD_GFX908,AMD_GFX90A,AMD_GFX940,AMD_GFX942,AMD_GFX1030,AMD_GFX1100
+# AMD-GPUS: AMD_GFX906,AMD_GFX908,AMD_GFX90A,AMD_GFX940,AMD_GFX942,AMD_GFX1030,AMD_GFX1100,AMD_GFX1103
 # AMD-CPUS: AMDAVX,Zen,Zen2,Zen3
 # Intel-GPUs: Intel_Gen,Intel_Gen9,Intel_Gen11,Intel_Gen12LP,Intel_DG1,Intel_XeHP,Intel_PVC
 KOKKOS_ARCH ?= ""
@@ -39,6 +39,9 @@ KOKKOS_HIP_OPTIONS ?= ""
 # Default settings specific options.
 # Options: enable_async_dispatch
 KOKKOS_HPX_OPTIONS ?= ""
+
+#Options : force_host_as_device
+KOKKOS_OPENACC_OPTIONS ?= ""
 
 # Helper functions for conversion to upper case
 uppercase_TABLE:=a,A b,B c,C d,D e,E f,F g,G h,H i,I j,J k,K l,L m,M n,N o,O p,P q,Q r,R s,S t,T u,U v,V w,W x,X y,Y z,Z
@@ -93,6 +96,7 @@ KOKKOS_INTERNAL_DISABLE_DEPRECATED_CODE := $(call kokkos_has_string,$(KOKKOS_OPT
 KOKKOS_INTERNAL_ENABLE_DEPRECATION_WARNINGS := $(call kokkos_has_string,$(KOKKOS_OPTIONS),enable_deprecation_warnings)
 
 KOKKOS_INTERNAL_HIP_USE_RELOC := $(call kokkos_has_string,$(KOKKOS_HIP_OPTIONS),rdc)
+KOKKOS_INTERNAL_OPENACC_FORCE_HOST_AS_DEVICE := $(call kokkos_has_string,$(KOKKOS_OPENACC_OPTIONS),force_host_as_device)
 
 # Check for Kokkos Host Execution Spaces one of which must be on.
 KOKKOS_INTERNAL_USE_OPENMP := $(call kokkos_has_string,$(subst OpenMPTarget,,$(KOKKOS_DEVICES)),OpenMP)
@@ -422,7 +426,8 @@ KOKKOS_INTERNAL_USE_ARCH_ARMV81 := $(call kokkos_has_string,$(KOKKOS_ARCH),ARMv8
 KOKKOS_INTERNAL_USE_ARCH_ARMV8_THUNDERX := $(call kokkos_has_string,$(KOKKOS_ARCH),ARMv8-ThunderX)
 KOKKOS_INTERNAL_USE_ARCH_ARMV8_THUNDERX2 := $(call kokkos_has_string,$(KOKKOS_ARCH),ARMv8-TX2)
 KOKKOS_INTERNAL_USE_ARCH_A64FX := $(call kokkos_has_string,$(KOKKOS_ARCH),A64FX)
-KOKKOS_INTERNAL_USE_ARCH_ARM := $(strip $(shell echo $(KOKKOS_INTERNAL_USE_ARCH_ARMV80)+$(KOKKOS_INTERNAL_USE_ARCH_ARMV81)+$(KOKKOS_INTERNAL_USE_ARCH_ARMV8_THUNDERX)+$(KOKKOS_INTERNAL_USE_ARCH_ARMV8_THUNDERX2)+$(KOKKOS_INTERNAL_USE_ARCH_A64FX) | bc))
+KOKKOS_INTERNAL_USE_ARCH_ARMV9_GRACE := $(call kokkos_has_string,$(KOKKOS_ARCH),ARMv9-Grace)
+KOKKOS_INTERNAL_USE_ARCH_ARM := $(strip $(shell echo $(KOKKOS_INTERNAL_USE_ARCH_ARMV80)+$(KOKKOS_INTERNAL_USE_ARCH_ARMV81)+$(KOKKOS_INTERNAL_USE_ARCH_ARMV8_THUNDERX)+$(KOKKOS_INTERNAL_USE_ARCH_ARMV8_THUNDERX2)+$(KOKKOS_INTERNAL_USE_ARCH_A64FX)+$(KOKKOS_INTERNAL_USE_ARCH_ARMV9_GRACE) | bc))
 
 # IBM based.
 KOKKOS_INTERNAL_USE_ARCH_POWER8 := $(call kokkos_has_string,$(KOKKOS_ARCH),Power8)
@@ -461,13 +466,15 @@ KOKKOS_INTERNAL_USE_ARCH_AMD_GFX1100 := $(call kokkos_has_string,$(KOKKOS_ARCH),
 ifeq ($(KOKKOS_INTERNAL_USE_ARCH_AMD_GFX1100), 0)
   KOKKOS_INTERNAL_USE_ARCH_AMD_GFX1100 := $(call kokkos_has_string,$(KOKKOS_ARCH),NAVI1100)
 endif
+KOKKOS_INTERNAL_USE_ARCH_AMD_GFX1103 := $(call kokkos_has_string,$(KOKKOS_ARCH),AMD_GFX1103)
 KOKKOS_INTERNAL_USE_ARCH_AMD := $(shell expr $(KOKKOS_INTERNAL_USE_ARCH_AMD_GFX906)  \
                                               + $(KOKKOS_INTERNAL_USE_ARCH_AMD_GFX908)  \
                                               + $(KOKKOS_INTERNAL_USE_ARCH_AMD_GFX90A)  \
                                               + $(KOKKOS_INTERNAL_USE_ARCH_AMD_GFX940)  \
                                               + $(KOKKOS_INTERNAL_USE_ARCH_AMD_GFX942) \
                                               + $(KOKKOS_INTERNAL_USE_ARCH_AMD_GFX1030) \
-                                              + $(KOKKOS_INTERNAL_USE_ARCH_AMD_GFX1100))
+                                              + $(KOKKOS_INTERNAL_USE_ARCH_AMD_GFX1100) \
+                                              + $(KOKKOS_INTERNAL_USE_ARCH_AMD_GFX1103))
 
 # Any AVX?
 KOKKOS_INTERNAL_USE_ARCH_AVX        := $(shell expr $(KOKKOS_INTERNAL_USE_ARCH_SNB) + $(KOKKOS_INTERNAL_USE_ARCH_AMDAVX))
@@ -790,6 +797,14 @@ ifeq ($(KOKKOS_INTERNAL_USE_ARCH_A64FX), 1)
     KOKKOS_CXXFLAGS += -msve-vector-bits=512
     KOKKOS_LDFLAGS += -msve-vector-bits=512
   endif
+endif
+
+ifeq ($(KOKKOS_INTERNAL_USE_ARCH_ARMV9_GRACE), 1)
+  tmp := $(call kokkos_append_header,"$H""define KOKKOS_ARCH_ARMV9_GRACE")
+  tmp := $(call kokkos_append_header,"$H""define KOKKOS_ARCH_ARM_NEON")
+
+  KOKKOS_CXXFLAGS += -mcpu=neoverse-v2  -msve-vector-bits=128
+  KOKKOS_LDFLAGS += -mcpu=neoverse-v2  -msve-vector-bits=128
 endif
 
 ifeq ($(KOKKOS_INTERNAL_USE_ARCH_ZEN), 1)
@@ -1200,6 +1215,12 @@ ifeq ($(KOKKOS_INTERNAL_USE_ARCH_AMD_GFX1100), 1)
   KOKKOS_INTERNAL_HIP_ARCH_FLAG := --offload-arch=gfx1100
   KOKKOS_INTERNAL_AMD_ARCH_FLAG := $(KOKKOS_INTERNAL_AMD_ARCH_FLAG)=gfx1100
 endif
+ifeq ($(KOKKOS_INTERNAL_USE_ARCH_AMD_GFX1103), 1)
+  tmp := $(call kokkos_append_header,"$H""define KOKKOS_ARCH_AMD_GFX1103")
+  tmp := $(call kokkos_append_header,"$H""define KOKKOS_ARCH_AMD_GPU")
+  KOKKOS_INTERNAL_HIP_ARCH_FLAG := --offload-arch=gfx1103
+  KOKKOS_INTERNAL_AMD_ARCH_FLAG := $(KOKKOS_INTERNAL_AMD_ARCH_FLAG)=gfx1103
+endif
 
 
 ifeq ($(KOKKOS_INTERNAL_USE_HIP), 1)
@@ -1445,15 +1466,20 @@ ifeq ($(KOKKOS_INTERNAL_USE_OPENACC), 1)
       endif
       KOKKOS_LIBS += -lamdhip64
     endif
-  else
-    # When not compiling for offload to any GPU, we're compiling for kernel
-    # execution on the host.  In that case, memory is shared between the OpenACC
-    # space and the host space.
+  else ifeq ($(KOKKOS_INTERNAL_OPENACC_FORCE_HOST_AS_DEVICE), 1)
+    # Compile for kernel execution on the host. In that case, 
+	# memory is shared between the OpenACC space and the host space.
     ifeq ($(KOKKOS_INTERNAL_COMPILER_CLANG), 1)
-      KOKKOS_CXXFLAGS += -DKOKKOS_OPENACC_WITHOUT_GPU
+      KOKKOS_CXXFLAGS += -DKOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE
     endif
     ifeq ($(KOKKOS_INTERNAL_COMPILER_NVHPC), 1)
-      KOKKOS_CXXFLAGS += -DKOKKOS_OPENACC_WITHOUT_GPU -acc=multicore
+      KOKKOS_CXXFLAGS += -DKOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE -acc=multicore
+    endif
+  else
+    # Automatic fallback mode; try to offload any available GPU, and fall back
+	# to the host CPU if no available GPU is found.
+    ifeq ($(KOKKOS_INTERNAL_COMPILER_NVHPC), 1)
+      KOKKOS_CXXFLAGS += -acc=gpu,multicore
     endif
   endif
 endif

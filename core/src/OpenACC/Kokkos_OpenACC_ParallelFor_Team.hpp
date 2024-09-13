@@ -47,10 +47,11 @@ class Kokkos::Impl::ParallelFor<FunctorType, Kokkos::TeamPolicy<Properties...>,
     int const async_arg = m_policy.space().acc_async_queue();
 
     auto const a_functor(m_functor);
+
 #pragma acc parallel loop gang vector num_gangs(league_size) \
     vector_length(team_size* vector_length) copyin(a_functor) async(async_arg)
     for (int i = 0; i < league_size * team_size * vector_length; i++) {
-#if defined(KOKKOS_OPENACC_WITHOUT_GPU)
+#if defined(KOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE)
       int league_rank = i / (team_size * vector_length);
       int team_rank   = i % (team_size * vector_length);
       typename Policy::member_type team(league_rank, league_size, team_rank,

@@ -143,12 +143,8 @@ class OpenACCTeamMember {
                                               // OpenACC, Properties ...> & team
       : m_league_rank(league_rank),
         m_league_size(league_size),
+        m_team_size(team_size),
         m_vector_length(vector_length) {
-    if (team_size >= Experimental::Impl::OpenACC_Traits::WarpSize) {
-      m_team_size = team_size;
-    } else {
-      m_team_size = Experimental::Impl::OpenACC_Traits::WarpSize;
-    }
 #ifdef KOKKOS_COMPILER_NVHPC
     m_team_rank = __pgi_vectoridx();
 #else

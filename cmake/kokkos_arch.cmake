@@ -49,6 +49,7 @@ DECLARE_AND_CHECK_HOST_ARCH(ARMV81            "ARMv8.1 Compatible CPU")
 DECLARE_AND_CHECK_HOST_ARCH(ARMV8_THUNDERX    "ARMv8 Cavium ThunderX CPU")
 DECLARE_AND_CHECK_HOST_ARCH(ARMV8_THUNDERX2   "ARMv8 Cavium ThunderX2 CPU")
 DECLARE_AND_CHECK_HOST_ARCH(A64FX             "ARMv8.2 with SVE Support")
+DECLARE_AND_CHECK_HOST_ARCH(ARMV9_GRACE       "ARMv9 NVIDIA Grace CPU")
 DECLARE_AND_CHECK_HOST_ARCH(SNB               "Intel Sandy/Ivy Bridge CPUs")
 DECLARE_AND_CHECK_HOST_ARCH(HSW               "Intel Haswell CPUs")
 DECLARE_AND_CHECK_HOST_ARCH(BDW               "Intel Broadwell Xeon E-class CPUs")
@@ -841,18 +842,23 @@ IF (KOKKOS_ENABLE_OPENACC)
       COMPILER_SPECIFIC_LINK_OPTIONS(Clang -L$ENV{ROCM_PATH}/lib)
     ENDIF()
     COMPILER_SPECIFIC_LIBS(Clang -lamdhip64)
-  ELSE()
-    # When not compiling for offload to any GPU, we're compiling for kernel
-    # execution on the host.  In that case, memory is shared between the OpenACC
-    # space and the host space.
+  ELSEIF(KOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE)
+    # Compile for kernel execution on the host. In that case, 
+    # memory is shared between the OpenACC space and the host space.
     COMPILER_SPECIFIC_FLAGS(
       NVHPC -acc=multicore
     )
     COMPILER_SPECIFIC_DEFS(
-      NVHPC KOKKOS_OPENACC_WITHOUT_GPU
+      NVHPC KOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE
     )
     COMPILER_SPECIFIC_DEFS(
-      Clang KOKKOS_OPENACC_WITHOUT_GPU
+      Clang KOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE
+    )
+  ELSE()
+    # Automatic fallback mode; try to offload any available GPU, and fall back
+    # to the host CPU if no available GPU is found.
+    COMPILER_SPECIFIC_FLAGS(
+      NVHPC -acc=gpu,multicore
     )
   ENDIF()
 ENDIF()

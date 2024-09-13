@@ -151,7 +151,7 @@ KOKKOS_INLINE_FUNCTION void parallel_reduce(
 #define KOKKOS_IMPL_ACC_REDUCE_TEAM_PRAGMA \
   vector vector_length(team_size* vector_length)
 #define KOKKOS_IMPL_ACC_REDUCE_TEAM_ITRS league_size* team_size* vector_length
-#ifdef KOKKOS_OPENACC_WITHOUT_GPU
+#ifdef KOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE
 #define KOKKOS_IMPL_ACC_REDUCE_TEAM_MEMBER_INIT                          \
   int league_rank = i / (team_size * vector_length);                     \
   int team_rank   = i % (team_size * vector_length);                     \

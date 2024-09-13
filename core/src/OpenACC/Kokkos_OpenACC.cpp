@@ -28,7 +28,7 @@
 #elif defined(KOKKOS_ARCH_AMD_GPU)
 #define __HIP_PLATFORM_AMD__
 #include <hip/hip_runtime_api.h>
-#elif defined(KOKKOS_OPENACC_WITHOUT_GPU)
+#elif defined(KOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE)
 #include <thread>
 #endif
 
@@ -100,7 +100,7 @@ void Kokkos::Experimental::OpenACC::impl_initialize(
     }
     Impl::OpenACCInternal::m_concurrency =
         deviceProp.maxThreadsPerMultiProcessor * deviceProp.multiProcessorCount;
-#elif defined(KOKKOS_OPENACC_WITHOUT_GPU)
+#elif defined(KOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE)
     Impl::OpenACCInternal::m_concurrency = std::thread::hardware_concurrency();
     if (!Impl::OpenACCInternal::m_concurrency) {
       Kokkos::Impl::host_abort(
@@ -135,6 +135,12 @@ void Kokkos::Experimental::OpenACC::print_configuration(std::ostream& os,
   os << "OpenACC Options:\n";
   os << "  KOKKOS_ENABLE_OPENACC_COLLAPSE_HIERARCHICAL_CONSTRUCTS: ";
 #ifdef KOKKOS_ENABLE_OPENACC_COLLAPSE_HIERARCHICAL_CONSTRUCTS
+  os << "yes\n";
+#else
+  os << "no\n";
+#endif
+  os << "  KOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE: ";
+#ifdef KOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE
   os << "yes\n";
 #else
   os << "no\n";

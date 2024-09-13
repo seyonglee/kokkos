@@ -34,7 +34,7 @@ struct OpenACC_Traits {
 #else
   static constexpr OpenACCSpace::size_type WarpSize = 64;
 #endif
-#elif defined(KOKKOS_OPENACC_WITHOUT_GPU)
+#elif defined(KOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE)
   static constexpr acc_device_t dev_type            = acc_device_host;
   static constexpr bool may_fallback_to_host        = true;
   static constexpr OpenACCSpace::size_type WarpSize = 32;

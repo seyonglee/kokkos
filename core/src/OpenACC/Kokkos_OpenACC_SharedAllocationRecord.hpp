@@ -20,7 +20,7 @@
 #include <OpenACC/Kokkos_OpenACCSpace.hpp>
 #include <impl/Kokkos_SharedAlloc.hpp>
 
-#if defined(KOKKOS_OPENACC_WITHOUT_GPU)
+#if defined(KOKKOS_ENABLE_OPENACC_FORCE_HOST_AS_DEVICE)
 KOKKOS_IMPL_SHARED_ALLOCATION_SPECIALIZATION(
     Kokkos::Experimental::OpenACCSpace);
 #else

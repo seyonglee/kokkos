@@ -243,7 +243,7 @@ void OpenACCParallelForMDRangePolicy(OpenACCCollapse, OpenACCIterateRight,
 // clang-format off
 #pragma acc parallel loop gang vector copyin(functor) async(async_arg)
     // clang-format on
-    for (auto i2 = begin0; i2 < end2; ++i2) {
+    for (auto i2 = begin2; i2 < end2; ++i2) {
       for (auto i1 = begin1; i1 < end1; ++i1) {
         for (auto i0 = begin0; i0 < end0; ++i0) {
           functor(i0, i1, i2);

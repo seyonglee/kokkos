@@ -10,7 +10,7 @@ SPDX-License-Identifier: (BSD-3-Clause)
 #define DESUL_ATOMICS_LOCK_BASED_FETCH_OP_OPENACC_HPP_
 
 #include <desul/atomics/Common.hpp>
-#include <desul/atomics/Lock_Array.hpp>
+#include <desul/atomics/Lock_Array_OpenACC.hpp>
 #include <desul/atomics/Thread_Fence.hpp>
 #include <type_traits>
 
@@ -35,14 +35,14 @@ inline T device_atomic_fetch_oper(const Oper& op,
         "the OpenACC backend\n");
   }
   // Acquire a lock for the address
-  while (!lock_address((void*)dest, scope)) {
+  while (!lock_address_openacc((void*)dest, scope)) {
   }
 
   device_atomic_thread_fence(MemoryOrderAcquire(), scope);
   T return_val = *dest;
   *dest = op.apply(return_val, val);
   device_atomic_thread_fence(MemoryOrderRelease(), scope);
-  unlock_address((void*)dest, scope);
+  unlock_address_openacc((void*)dest, scope);
   return return_val;
 }
 

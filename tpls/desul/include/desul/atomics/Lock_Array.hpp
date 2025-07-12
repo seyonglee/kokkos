@@ -20,6 +20,9 @@ SPDX-License-Identifier: (BSD-3-Clause)
 #ifdef DESUL_HAVE_SYCL_ATOMICS
 #include <desul/atomics/Lock_Array_SYCL.hpp>
 #endif
+#ifdef DESUL_HAVE_OPENACC_ATOMICS
+#include <desul/atomics/Lock_Array_OPENACC.hpp>
+#endif
 
 namespace desul {
 namespace Impl {
@@ -52,6 +55,10 @@ inline void init_lock_arrays() {
 #ifdef DESUL_HAVE_HIP_ATOMICS
   init_lock_arrays_hip();
 #endif
+
+#ifdef DESUL_HAVE_OPENACC_ATOMICS
+  init_lock_arrays_openacc();
+#endif
 }
 
 inline void finalize_lock_arrays() {
@@ -61,6 +68,10 @@ inline void finalize_lock_arrays() {
 
 #ifdef DESUL_HAVE_HIP_ATOMICS
   finalize_lock_arrays_hip();
+#endif
+
+#ifdef DESUL_HAVE_OPENACC_ATOMICS
+  finalize_lock_arrays_openacc();
 #endif
 }
 

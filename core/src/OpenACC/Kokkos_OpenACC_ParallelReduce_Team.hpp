@@ -184,8 +184,8 @@ parallel_reduce(const Impl::TeamThreadRangeBoundariesStruct<
   value_type tmp;
   wrapped_reducer.init(&tmp);
 
-  iType j_start =
-      loop_boundaries.team.team_rank() / loop_boundaries.team.vector_length();
+  iType j_start = loop_boundaries.member.team_rank() /
+                  loop_boundaries.member.vector_length();
   if (j_start == 0) {
 #pragma acc loop seq
     for (iType i = loop_boundaries.start; i < loop_boundaries.end; i++)
@@ -212,8 +212,8 @@ parallel_reduce(const Impl::TeamThreadRangeBoundariesStruct<
   value_type tmp;
   wrapped_reducer.init(&tmp);
 
-  iType j_start =
-      loop_boundaries.team.team_rank() / loop_boundaries.team.vector_length();
+  iType j_start = loop_boundaries.member.team_rank() /
+                  loop_boundaries.member.vector_length();
   if (j_start == 0) {
 #pragma acc loop seq
     for (iType i = loop_boundaries.start; i < loop_boundaries.end; i++)
@@ -242,8 +242,8 @@ parallel_reduce(const Impl::ThreadVectorRangeBoundariesStruct<
   value_type tmp;
   wrapped_reducer.init(&tmp);
 
-  iType j_start =
-      loop_boundaries.team.team_rank() % loop_boundaries.team.vector_length();
+  iType j_start = loop_boundaries.member.team_rank() %
+                  loop_boundaries.member.vector_length();
   if (j_start == 0) {
 #pragma acc loop seq
     for (iType i = loop_boundaries.start; i < loop_boundaries.end; i++) {
@@ -271,8 +271,8 @@ parallel_reduce(const Impl::ThreadVectorRangeBoundariesStruct<
   value_type tmp;
   wrapped_reducer.init(&tmp);
 
-  iType j_start =
-      loop_boundaries.team.team_rank() % loop_boundaries.team.vector_length();
+  iType j_start = loop_boundaries.member.team_rank() %
+                  loop_boundaries.member.vector_length();
   if (j_start == 0) {
 #pragma acc loop seq
     for (iType i = loop_boundaries.start; i < loop_boundaries.end; i++) {
@@ -302,8 +302,8 @@ KOKKOS_INLINE_FUNCTION void parallel_reduce(
   value_type tmp;
   wrapped_reducer.init(&tmp);
 
-  iType j_start =
-      loop_boundaries.team.team_rank() % loop_boundaries.team.vector_length();
+  iType j_start = loop_boundaries.member.team_rank() %
+                  loop_boundaries.member.vector_length();
   if (j_start == 0) {
 #pragma acc loop seq
     for (iType i = loop_boundaries.start; i < loop_boundaries.end; i++) {

@@ -271,7 +271,10 @@ class TestReduce {
   TestReduce(const size_type& nwork) {
     run_test(nwork);
     run_test_final(nwork);
+// FIXME_OPENACC: Not yet implemented.
+#ifndef KOKKOS_ENABLE_OPENACC
     run_test_final_tag(nwork);
+#endif
   }
 
   void run_test(const size_type& nwork) {
@@ -527,6 +530,8 @@ TEST(TEST_CATEGORY, double_reduce) {
   TestReduce<double, TEST_EXECSPACE>(1000000);
 }
 
+// FIXME_OPENACC: Not yet implemented.
+#ifndef KOKKOS_ENABLE_OPENACC
 TEST(TEST_CATEGORY, int64_t_reduce_dynamic) {
   TestReduceDynamic<int64_t, TEST_EXECSPACE>(0);
   TestReduceDynamic<int64_t, TEST_EXECSPACE>(1000000);
@@ -541,6 +546,7 @@ TEST(TEST_CATEGORY, int64_t_reduce_dynamic_view) {
   TestReduceDynamicView<int64_t, TEST_EXECSPACE>(0);
   TestReduceDynamicView<int64_t, TEST_EXECSPACE>(1000000);
 }
+#endif
 #endif
 
 // FIXME_OPENMPTARGET: Not yet implemented.

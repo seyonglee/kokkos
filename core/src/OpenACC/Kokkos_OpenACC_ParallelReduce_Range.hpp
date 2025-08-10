@@ -219,9 +219,10 @@ KOKKOS_IMPL_ACC_PRAGMA(parallel loop gang num_gangs(n_chunks) num_workers(1) vec
   /* clang-format on */
   {
     IndexType tSize = chunk_size;
-    IndexType tStep, idx;
+    IndexType tStep;
 #pragma acc loop vector
     for (IndexType thread_id = 0; thread_id < chunk_size; ++thread_id) {
+      IndexType idx;
       ValueType temp;
       temp = initVal;
 #pragma acc loop seq

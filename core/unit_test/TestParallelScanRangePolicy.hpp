@@ -115,7 +115,7 @@ struct TestParallelScanRangePolicy {
     // If policy template args are not given, call parallel_scan()
     // with work_size input, if args are given, call
     // parallel_scan() with RangePolicy<Args...>(0, work_size)
-    // and RangePolicy<Args...>(1, work_size).
+    // and RangePolicy<Args...>(2, work_size).
     // For each case, call parallel_scan() with all possible
     // function signatures.
     if (sizeof...(Args) == 0) {

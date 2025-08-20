@@ -226,7 +226,7 @@ struct TestParallelScanRangePolicy {
                   return_val);  // sum( 0 .. N-1 )
       }
 
-#ifndef KOKKOS_ENABLE_OPENMPTARGET
+#ifndef KOKKOS_ENABLE_OPENMPTARGET  // FIXME_OPENMPTARGET
       // FIXME_OPENMPTARGET - does not support partial scan.
       if (work_size >= 2) {
         // Construct another RangePolicy for parallel_scan

@@ -87,6 +87,7 @@ struct TestParallelScanRangePolicy {
       Kokkos::deep_copy(postfix_results, 0);
     };
 
+#ifndef KOKKOS_ENABLE_OPENMPTARGET  // FIXME_OPENMPTARGET
     // Lambda for checking errors from stored value at each index
     // starting from 2.
     auto check_scan_results_start2 = [&]() {
@@ -111,6 +112,7 @@ struct TestParallelScanRangePolicy {
       Kokkos::deep_copy(prefix_results, 0);
       Kokkos::deep_copy(postfix_results, 0);
     };
+#endif
 
     // If policy template args are not given, call parallel_scan()
     // with work_size input, if args are given, call

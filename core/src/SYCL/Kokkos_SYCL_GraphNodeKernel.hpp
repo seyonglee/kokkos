@@ -131,11 +131,11 @@ class GraphNodeKernelImpl<Kokkos::SYCL, PolicyType, Functor, PatternTag,
   }
 
  private:
-  Kokkos::ObservingRawPtr<sycl::ext::oneapi::experimental::command_graph<
-      sycl::ext::oneapi::experimental::graph_state::modifiable>>
-      m_graph_ptr = nullptr;
-  Kokkos::ObservingRawPtr<std::optional<sycl::ext::oneapi::experimental::node>>
-      m_graph_node_ptr = nullptr;
+  sycl::ext::oneapi::experimental::command_graph<
+      sycl::ext::oneapi::experimental::graph_state::modifiable>* m_graph_ptr =
+      nullptr;
+  std::optional<sycl::ext::oneapi::experimental::node>* m_graph_node_ptr =
+      nullptr;
 };
 
 struct SYCLGraphNodeAggregate {};
@@ -144,13 +144,13 @@ template <typename KernelType,
           typename Tag =
               typename PatternTagFromImplSpecialization<KernelType>::type>
 struct get_graph_node_kernel_type
-    : type_identity<
+    : std::type_identity<
           GraphNodeKernelImpl<Kokkos::SYCL, typename KernelType::Policy,
                               typename KernelType::functor_type, Tag>> {};
 
 template <typename KernelType>
 struct get_graph_node_kernel_type<KernelType, Kokkos::ParallelReduceTag>
-    : type_identity<GraphNodeKernelImpl<
+    : std::type_identity<GraphNodeKernelImpl<
           Kokkos::SYCL, typename KernelType::Policy,
           CombinedFunctorReducer<typename KernelType::FunctorType,
                                  typename KernelType::ReducerType>,

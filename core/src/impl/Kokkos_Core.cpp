@@ -533,6 +533,15 @@ void pre_initialize_internal(const Kokkos::InitializationSettings& settings) {
   declare_configuration_metadata("tools_only", "compiler_family", "msvc");
 #endif
 
+  declare_configuration_metadata("atomics", "desul atomics version", KOKKOS_IMPL_DESUL_VERSION);
+
+#ifdef KOKKOS_ENABLE_IMPL_VIEW_LEGACY
+  declare_configuration_metadata("view", "mdspan", "disabled");
+#else
+  declare_configuration_metadata("view", "mdspan", "enabled");
+#endif
+  declare_configuration_metadata("view", "mdspan version", KOKKOS_IMPL_MDSPAN_VERSION);
+
 #ifdef KOKKOS_ENABLE_PRAGMA_IVDEP
   declare_configuration_metadata("vectorization", "KOKKOS_ENABLE_PRAGMA_IVDEP", "yes");
 #else
@@ -558,11 +567,6 @@ void pre_initialize_internal(const Kokkos::InitializationSettings& settings) {
   declare_configuration_metadata("options", "KOKKOS_ENABLE_ASM", "yes");
 #else
   declare_configuration_metadata("options", "KOKKOS_ENABLE_ASM", "no");
-#endif
-#ifdef KOKKOS_ENABLE_CXX17
-  declare_configuration_metadata("options", "KOKKOS_ENABLE_CXX17", "yes");
-#else
-  declare_configuration_metadata("options", "KOKKOS_ENABLE_CXX17", "no");
 #endif
 #ifdef KOKKOS_ENABLE_CXX20
   declare_configuration_metadata("options", "KOKKOS_ENABLE_CXX20", "yes");
@@ -652,11 +656,11 @@ void pre_initialize_internal(const Kokkos::InitializationSettings& settings) {
 #elif defined(KOKKOS_ARCH_AMD_ZEN5)
   declare_configuration_metadata("architecture", "CPU architecture", "AMD_ZEN5");
 #elif defined(KOKKOS_ARCH_RISCV_SG2042)
-  declare_configuration_metadata("architecture", "CPU architecture", "SG2042 (RISC-V)")
+  declare_configuration_metadata("architecture", "CPU architecture", "SG2042 (RISC-V)");
 #elif defined(KOKKOS_ARCH_RISCV_RVA22V)
-  declare_configuration_metadata("architecture", "CPU architecture", "RVA22V (RISC-V)")
+  declare_configuration_metadata("architecture", "CPU architecture", "RVA22V (RISC-V)");
 #elif defined(KOKKOS_ARCH_RISCV_U74MC)
-  declare_configuration_metadata("architecture", "CPU architecture", "U74MC (RISC-V)")
+  declare_configuration_metadata("architecture", "CPU architecture", "U74MC (RISC-V)");
 #else
   declare_configuration_metadata("architecture", "CPU architecture", "none");
 #endif
@@ -1104,6 +1108,9 @@ void Kokkos::print_configuration(std::ostream& os, bool verbose) {
 
   os << "Atomics:\n";
   print_helper(os, metadata_map["atomics"]);
+
+  os << "View:\n";
+  print_helper(os, metadata_map["view"]);
 
   os << "Vectorization:\n";
   print_helper(os, metadata_map["vectorization"]);

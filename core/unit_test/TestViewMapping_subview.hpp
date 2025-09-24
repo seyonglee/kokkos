@@ -52,24 +52,20 @@ struct TestViewMappingSubview {
   using DLT  = Kokkos::View<int*** [13][14], Kokkos::LayoutLeft, ExecSpace>;
   using DLS1 = Kokkos::Subview<DLT, range, int, int, int, int>;
 
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 1000
   static_assert(
       DLS1::rank == 1 &&
-          std::is_same<typename DLS1::array_layout, Kokkos::LayoutLeft>::value,
+          std::is_same_v<typename DLS1::array_layout, Kokkos::LayoutLeft>,
       "Subview layout error for rank 1 subview of left-most range of "
       "LayoutLeft");
-#endif
 
   using DRT  = Kokkos::View<int*** [13][14], Kokkos::LayoutRight, ExecSpace>;
   using DRS1 = Kokkos::Subview<DRT, int, int, int, int, range>;
 
-#if defined(__CUDA_ARCH__) && __CUDA_ARCH__ >= 1000
   static_assert(
       DRS1::rank == 1 &&
-          std::is_same<typename DRS1::array_layout, Kokkos::LayoutRight>::value,
+          std::is_same_v<typename DRS1::array_layout, Kokkos::LayoutRight>,
       "Subview layout error for rank 1 subview of right-most range of "
       "LayoutRight");
-#endif
 
   AT Aa;
   AS Ab;
@@ -162,9 +158,17 @@ struct TestViewMappingSubview {
     ASSERT_EQ(Db.extent(1), (size_t)DN2 - 2);
     ASSERT_EQ(Db.extent(2), (size_t)DN3 - 2);
 
-    ASSERT_EQ(Da.stride_1(), Db.stride_0());
-    ASSERT_EQ(Da.stride_2(), Db.stride_1());
-    ASSERT_EQ(Da.stride_3(), Db.stride_2());
+    ASSERT_EQ(Da.stride(1), Db.stride(0));
+    ASSERT_EQ(Da.stride(2), Db.stride(1));
+    ASSERT_EQ(Da.stride(3), Db.stride(2));
+
+#ifdef KOKKOS_ENABLE_DEPRECATED_CODE_4
+    KOKKOS_IMPL_DISABLE_DEPRECATED_WARNINGS_PUSH()
+    ASSERT_EQ(Da.stride_1(), Db.stride_0());  // NOLINT
+    ASSERT_EQ(Da.stride_2(), Db.stride_1());  // NOLINT
+    ASSERT_EQ(Da.stride_3(), Db.stride_2());  // NOLINT
+    KOKKOS_IMPL_DISABLE_DEPRECATED_WARNINGS_POP()
+#endif
 
     long error_count = -1;
     Kokkos::parallel_reduce(Kokkos::RangePolicy<ExecSpace>(0, 1), *this,

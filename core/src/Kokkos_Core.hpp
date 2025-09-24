@@ -63,9 +63,6 @@
 #include <Kokkos_hwloc.hpp>
 #include <Kokkos_Timer.hpp>
 #include <Kokkos_Tuners.hpp>
-#ifdef KOKKOS_ENABLE_DEPRECATED_CODE_4
-#include <Kokkos_TaskScheduler.hpp>
-#endif
 #include <Kokkos_Complex.hpp>
 #include <Kokkos_CopyViews.hpp>
 #include <impl/Kokkos_TeamMDPolicy.hpp>
@@ -149,7 +146,7 @@ namespace Kokkos {
 
 namespace Impl {
 
-static inline void check_init_final([[maybe_unused]] char const* func_name) {
+inline void check_init_final([[maybe_unused]] char const* func_name) {
 // FIXME_THREADS: Checking for calls to kokkos_malloc, kokkos_realloc,
 // kokkos_free before initialize or after finalize is currently disabled
 // for the Threads backend. Refer issue #7944.
@@ -254,12 +251,9 @@ inline std::string scopeguard_destruct_after_finalize_warning() {
 
 }  // namespace Impl
 
-class KOKKOS_ATTRIBUTE_NODISCARD ScopeGuard {
+class [[nodiscard]] ScopeGuard {
  public:
   template <class... Args>
-#if defined(__has_cpp_attribute) && __has_cpp_attribute(nodiscard) >= 201907
-  [[nodiscard]]
-#endif
   ScopeGuard(Args&&... args) {
     if (is_initialized()) {
       Kokkos::abort(

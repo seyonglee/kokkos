@@ -56,14 +56,7 @@ struct extrema {
 
   DEFINE_EXTREMA(float, -FLT_MAX, FLT_MAX)
   DEFINE_EXTREMA(double, -DBL_MAX, DBL_MAX)
-
-#if !defined(KOKKOS_ENABLE_CUDA) || \
-    !defined(KOKKOS_COMPILER_NVHPC)  // 23.7 long double
   DEFINE_EXTREMA(long double, -LDBL_MAX, LDBL_MAX)
-#else
-  static long double min(long double) { return -LDBL_MAX; }
-  static long double max(long double) { return LDBL_MAX; }
-#endif
 
 #undef DEFINE_EXTREMA
 };
@@ -117,8 +110,8 @@ struct TestNumericTraits {
 
   KOKKOS_FUNCTION void operator()(Infinity, int, int& e) const {
     using Kokkos::Experimental::infinity;
-    constexpr auto inf = infinity<T>::value;
-    auto const zero    = T(0);
+    T const inf  = infinity<T>::value;
+    T const zero = 0;
     e += (int)!(inf + inf == inf);
     e += (int)!(inf != zero);
     use_on_device();
@@ -213,6 +206,9 @@ struct TestNumericTraits<
 
 // NOLINTBEGIN(bugprone-unused-raii)
 TEST(TEST_CATEGORY, numeric_traits_infinity) {
+#if __FINITE_MATH_ONLY__
+  GTEST_SKIP() << "skipping when compiling with -ffinite-math-only";
+#endif
   TestNumericTraits<TEST_EXECSPACE, Kokkos::Experimental::half_t, Infinity>();
   TestNumericTraits<TEST_EXECSPACE, Kokkos::Experimental::bhalf_t, Infinity>();
   TestNumericTraits<TEST_EXECSPACE, float, Infinity>();
@@ -590,9 +586,8 @@ CHECK_SAME_AS_NUMERIC_LIMITS_MEMBER_CONSTANT(long double, max_exponent10);
 
 // Workaround compiler issue error: expression must have a constant value
 // See kokkos/kokkos#4574
-// There is the same bug with CUDA 11.6
-// FIXME_NVHPC FIXME_CUDA FIXME_NVCC
-#if !defined(KOKKOS_COMPILER_NVHPC) && (CUDA_VERSION < 11060) && \
+// FIXME_NVHPC FIXME_NVCC
+#if !defined(KOKKOS_COMPILER_NVHPC) && \
     !(defined(KOKKOS_COMPILER_NVCC) && !defined(KOKKOS_ENABLE_CUDA))
 CHECK_NAN_SAME_AS_NUMERIC_LIMITS_MEMBER_FUNCTION(float, quiet_NaN);
 CHECK_NAN_SAME_AS_NUMERIC_LIMITS_MEMBER_FUNCTION(double, quiet_NaN);

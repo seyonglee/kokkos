@@ -1578,16 +1578,8 @@ struct TestReducers {
     test_maxloc_2d(100);
 #endif
 #endif
-// FIXME_OPENMPTARGET - The minmaxloc test fails llvm < 13 version,
-// test_minmaxloc_2d requires custom reductions
-#if defined(KOKKOS_ENABLE_OPENMPTARGET)
-#if defined(KOKKOS_COMPILER_CLANG) && (KOKKOS_COMPILER_CLANG >= 1300) && \
-    (KOKKOS_COMPILER_CLANG <= 1700)
+#if defined(KOKKOS_ENABLE_OPENMPTARGET)  // FIXME_OPENMPTARGET custom reducers
     test_minmaxloc(10007);
-#else
-    if (!std::is_same_v<ExecSpace, Kokkos::Experimental::OpenMPTarget>)
-      test_minmaxloc(10007);
-#endif
 #else
     test_minmaxloc(10007);
     test_minmaxloc_loc_init(3);
@@ -1634,15 +1626,8 @@ struct TestReducers {
       test_maxloc_2d(100);
 #endif
 #endif
-// FIXME_OPENMPTARGET - The minmaxloc test fails llvm < 13 version,
-// the minmaxloc_2d test requires custom reductions.
-#if defined(KOKKOS_ENABLE_OPENMPTARGET)
-#if defined(KOKKOS_COMPILER_CLANG) && (KOKKOS_COMPILER_CLANG >= 1300)
+#if defined(KOKKOS_ENABLE_OPENMPTARGET)  // FIXME_OPENMPTARGET custom reducers
     test_minmaxloc(10007);
-#else
-    if (!std::is_same_v<ExecSpace, Kokkos::Experimental::OpenMPTarget>)
-      test_minmaxloc(10007);
-#endif
 #else
     test_minmaxloc(10007);
     test_minmaxloc_loc_init(3);

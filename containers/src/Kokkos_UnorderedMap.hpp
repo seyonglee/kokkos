@@ -67,7 +67,7 @@ namespace Impl {
 template <typename ViewType, typename... P, typename... Args>
 auto allocate_without_initializing_if_possible(
     const Impl::ViewCtorProp<P...> &alloc_prop, Args &&...args) {
-  using alloc_prop_t = Impl::remove_cvref_t<decltype(alloc_prop)>;
+  using alloc_prop_t = std::remove_cvref_t<decltype(alloc_prop)>;
 
   // if incompatible we don't add the property
   if constexpr (alloc_prop_t::sequential_host_init)
@@ -311,8 +311,13 @@ class UnorderedMap {
 
   using insert_result = UnorderedMapInsertResult;
 
-  using HostMirror =
+  using host_mirror_type =
       UnorderedMap<Key, Value, host_mirror_space, Hasher, EqualTo>;
+
+#ifdef KOKKOS_ENABLE_DEPRECATED_CODE_4
+  using HostMirror KOKKOS_DEPRECATED_WITH_COMMENT(
+      "Use host_mirror_type instead.") = host_mirror_type;
+#endif
 
   using histogram_type = Impl::UnorderedMapHistogram<const_map_type>;
   //@}
@@ -368,7 +373,7 @@ class UnorderedMap {
         m_hasher(hasher),
         m_equal_to(equal_to),
         m_sequential_host_init(
-            Impl::remove_cvref_t<decltype(arg_prop)>::sequential_host_init) {
+            std::remove_cvref_t<decltype(arg_prop)>::sequential_host_init) {
     if (!is_insertable_map) {
       Kokkos::Impl::throw_runtime_exception(
           "Cannot construct a non-insertable (i.e. const key_type) "
@@ -376,7 +381,7 @@ class UnorderedMap {
     }
 
     //! Ensure that allocation properties are consistent.
-    using alloc_prop_t = Impl::remove_cvref_t<decltype(arg_prop)>;
+    using alloc_prop_t = std::remove_cvref_t<decltype(arg_prop)>;
     static_assert(alloc_prop_t::initialize,
                   "Allocation property 'initialize' should be true.");
     static_assert(
@@ -1045,11 +1050,11 @@ inline void deep_copy(
 // Specialization of create_mirror() for an UnorderedMap object.
 template <typename Key, typename ValueType, typename Device, typename Hasher,
           typename EqualTo>
-typename UnorderedMap<Key, ValueType, Device, Hasher, EqualTo>::HostMirror
+typename UnorderedMap<Key, ValueType, Device, Hasher, EqualTo>::host_mirror_type
 create_mirror(
     const UnorderedMap<Key, ValueType, Device, Hasher, EqualTo> &src) {
-  typename UnorderedMap<Key, ValueType, Device, Hasher, EqualTo>::HostMirror
-      dst;
+  typename UnorderedMap<Key, ValueType, Device, Hasher,
+                        EqualTo>::host_mirror_type dst;
   dst.allocate_view(src);
   return dst;
 }

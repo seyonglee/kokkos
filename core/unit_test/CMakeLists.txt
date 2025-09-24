@@ -111,17 +111,11 @@ if(WIN32)
 endif()
 
 if(Kokkos_INSTALL_TESTING) # FIXME Kokkos_ and KOKKOS_ variables are out of sync
-  if((Kokkos_CXX_COMPILER_ID STREQUAL "Intel" AND Kokkos_CXX_COMPILER_VERSION VERSION_LESS 2021.2.0)
-     OR (Kokkos_CXX_COMPILER_ID STREQUAL "NVIDIA" AND Kokkos_CXX_COMPILER_VERSION VERSION_LESS 11.3.0)
-     OR (Kokkos_CXX_COMPILER_ID STREQUAL "NVIDIA" AND Kokkos_CXX_HOST_COMPILER_ID STREQUAL "MSVC")
-  )
+  if(Kokkos_CXX_COMPILER_ID STREQUAL "NVIDIA" AND Kokkos_CXX_HOST_COMPILER_ID STREQUAL "MSVC")
     list(REMOVE_ITEM COMPILE_ONLY_SOURCES TestTypeInfo.cpp)
   endif()
 else()
-  if((KOKKOS_CXX_COMPILER_ID STREQUAL "Intel" AND KOKKOS_CXX_COMPILER_VERSION VERSION_LESS 2021.2.0)
-     OR (KOKKOS_CXX_COMPILER_ID STREQUAL "NVIDIA" AND KOKKOS_CXX_COMPILER_VERSION VERSION_LESS 11.3.0)
-     OR (KOKKOS_CXX_COMPILER_ID STREQUAL "NVIDIA" AND KOKKOS_CXX_HOST_COMPILER_ID STREQUAL "MSVC")
-  )
+  if(KOKKOS_CXX_COMPILER_ID STREQUAL "NVIDIA" AND KOKKOS_CXX_HOST_COMPILER_ID STREQUAL "MSVC")
     list(REMOVE_ITEM COMPILE_ONLY_SOURCES TestTypeInfo.cpp)
   endif()
 endif()
@@ -150,6 +144,8 @@ foreach(Tag Threads;Serial;OpenMP;Cuda;HPX;OpenMPTarget;OpenACC;HIP;SYCL)
       AtomicOperations_complexfloat
       AtomicOperations_double
       AtomicOperations_float
+      AtomicOperations_int8
+      AtomicOperations_int16
       AtomicOperations_int
       AtomicOperations_longint
       AtomicOperations_longlongint
@@ -166,6 +162,8 @@ foreach(Tag Threads;Serial;OpenMP;Cuda;HPX;OpenMPTarget;OpenACC;HIP;SYCL)
       Complex
       Concepts
       Crs
+      DeepCopy_Assignment
+      DeepCopy_Narrowing
       DeepCopyAlignment
       ExecSpacePartitioning
       ExecSpaceThreadSafety
@@ -256,6 +254,7 @@ foreach(Tag Threads;Serial;OpenMP;Cuda;HPX;OpenMPTarget;OpenACC;HIP;SYCL)
         TeamScratch
         TeamTeamSize
         TeamVectorRange
+        Timer
         UniqueToken
         View_64bit
         ViewAPI_a
@@ -606,6 +605,8 @@ if(KOKKOS_ENABLE_OPENACC AND KOKKOS_CXX_COMPILER_ID STREQUAL Clang)
     ${CMAKE_CURRENT_BINARY_DIR}/openacc/TestOpenACC_AtomicOperations_double.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/openacc/TestOpenACC_AtomicOperations_float.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/openacc/TestOpenACC_AtomicOperations_int.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/openacc/TestOpenACC_AtomicOperations_int8.cpp
+    ${CMAKE_CURRENT_BINARY_DIR}/openacc/TestOpenACC_AtomicOperations_int16.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/openacc/TestOpenACC_AtomicOperations_longint.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/openacc/TestOpenACC_AtomicOperations_longlongint.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/openacc/TestOpenACC_AtomicOperations_shared.cpp
@@ -682,15 +683,7 @@ if(KOKKOS_ENABLE_OPENACC AND KOKKOS_CXX_COMPILER_ID STREQUAL Clang)
 endif()
 
 if(Kokkos_ENABLE_SERIAL)
-  if(Kokkos_ENABLE_DEPRECATED_CODE_4)
-    set(Serial_EXTRA_SOURCES serial/TestSerial_Task.cpp)
-  else()
-    set(Serial_EXTRA_SOURCES)
-  endif()
-
-  kokkos_add_executable_and_test(
-    CoreUnitTest_Serial1 SOURCES UnitTestMainInit.cpp ${Serial_SOURCES1} ${Serial_EXTRA_SOURCES}
-  )
+  kokkos_add_executable_and_test(CoreUnitTest_Serial1 SOURCES UnitTestMainInit.cpp ${Serial_SOURCES1})
   kokkos_add_executable_and_test(CoreUnitTest_Serial2 SOURCES UnitTestMainInit.cpp ${Serial_SOURCES2})
 endif()
 
@@ -699,25 +692,12 @@ if(Kokkos_ENABLE_THREADS)
 endif()
 
 if(Kokkos_ENABLE_OPENMP)
-  if(Kokkos_ENABLE_DEPRECATED_CODE_4)
-    set(OpenMP_EXTRA_SOURCES openmp/TestOpenMP_Task.cpp)
-  else()
-    set(OpenMP_EXTRA_SOURCES)
-  endif()
-  kokkos_add_executable_and_test(
-    CoreUnitTest_OpenMP SOURCES UnitTestMainInit.cpp ${OpenMP_SOURCES} ${OpenMP_EXTRA_SOURCES}
-  )
+  kokkos_add_executable_and_test(CoreUnitTest_OpenMP SOURCES UnitTestMainInit.cpp ${OpenMP_SOURCES})
   kokkos_add_executable_and_test(CoreUnitTest_OpenMPInterOp SOURCES UnitTestMain.cpp openmp/TestOpenMP_InterOp.cpp)
 endif()
 
 if(Kokkos_ENABLE_HPX)
-  if(Kokkos_ENABLE_DEPRECATED_CODE_4)
-    set(HPX_EXTRA_SOURCES hpx/TestHPX_Task.cpp)
-  else()
-    set(HPX_EXTRA_SOURCES)
-  endif()
-
-  kokkos_add_executable_and_test(CoreUnitTest_HPX SOURCES UnitTestMainInit.cpp ${HPX_SOURCES} ${HPX_EXTRA_SOURCES})
+  kokkos_add_executable_and_test(CoreUnitTest_HPX SOURCES UnitTestMainInit.cpp ${HPX_SOURCES})
   kokkos_add_executable_and_test(CoreUnitTest_HPXInterOp SOURCES UnitTestMain.cpp hpx/TestHPX_InterOp.cpp)
   kokkos_add_executable_and_test(
     CoreUnitTest_HPX_IndependentInstances
@@ -749,17 +729,10 @@ if(Kokkos_ENABLE_CUDA)
 
   kokkos_add_executable_and_test(CoreUnitTest_Cuda2 SOURCES UnitTestMainInit.cpp ${Cuda_SOURCES2})
 
-  if(Kokkos_ENABLE_DEPRECATED_CODE_4)
-    set(Cuda_EXTRA_SOURCES cuda/TestCuda_Task.cpp)
-  else()
-    set(Cuda_EXTRA_SOURCES)
-  endif()
-
   kokkos_add_executable_and_test(
     CoreUnitTest_Cuda3
     SOURCES
     UnitTestMainInit.cpp
-    ${Cuda_EXTRA_SOURCES}
     cuda/TestCuda_TeamScratchStreams.cpp
     ${Cuda_SOURCES3}
     cuda/TestCuda_Spaces.cpp
@@ -791,6 +764,9 @@ if(Kokkos_ENABLE_CUDA)
 
   kokkos_add_executable_and_test(
     CoreUnitTest_CudaInterOpGraph SOURCES UnitTestMainInit.cpp cuda/TestCuda_InterOp_Graph.cpp
+  )
+  kokkos_add_executable_and_test(
+    CoreUnitTest_CudaInterOpGraphMultiGPU SOURCES UnitTestMainInit.cpp cuda/TestCuda_InterOp_GraphMultiGPU.cpp
   )
 endif()
 
@@ -824,12 +800,9 @@ if(Kokkos_ENABLE_HIP)
   kokkos_add_executable_and_test(
     CoreUnitTest_HIPInterOpGraph SOURCES UnitTestMainInit.cpp hip/TestHIP_InterOp_Graph.cpp
   )
-  if(KOKKOS_CXX_COMPILER_ID STREQUAL HIPCC AND KOKKOS_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 5.6)
-    # MultiGPU only works for rocm 5.6+
-    kokkos_add_executable_and_test(
-      CoreUnitTest_HIPInterOpStreamsMultiGPU SOURCES UnitTestMainInit.cpp hip/TestHIP_InterOp_StreamsMultiGPU.cpp
-    )
-  endif()
+  kokkos_add_executable_and_test(
+    CoreUnitTest_HIPInterOpStreamsMultiGPU SOURCES UnitTestMainInit.cpp hip/TestHIP_InterOp_StreamsMultiGPU.cpp
+  )
 endif()
 
 if(Kokkos_ENABLE_SYCL)
@@ -1146,14 +1119,11 @@ add_executable(Kokkos_CoreUnitTest_DeviceAndThreads UnitTest_DeviceAndThreads.cp
 target_link_libraries(Kokkos_CoreUnitTest_DeviceAndThreads Kokkos::kokkoscore)
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND AND Python3_VERSION VERSION_GREATER_EQUAL 3.7)
-  if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.20)
-    set(USE_SOURCE_PERMISSIONS_WHEN_SUPPORTED USE_SOURCE_PERMISSIONS)
-  endif()
   file(
     GENERATE
     OUTPUT $<TARGET_FILE_DIR:Kokkos_CoreUnitTest_DeviceAndThreads>/TestDeviceAndThreads.py
     INPUT TestDeviceAndThreads.py
-    ${USE_SOURCE_PERMISSIONS_WHEN_SUPPORTED}
+    USE_SOURCE_PERMISSIONS
   )
   add_test(NAME Kokkos_CoreUnitTest_DeviceAndThreads
            COMMAND ${Python3_EXECUTABLE}

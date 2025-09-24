@@ -19,44 +19,44 @@ jobs:
         include:
           - backend: "SERIAL"
             cmake_build_type: "RelWithDebInfo"
-            cxx_standard: "17"
+            cxx_standard: "20"
             compiler: "c++"
             runner: "macos-14"
-            cmake_extra_opts: ['-DCMAKE_CXX_CLANG_TIDY="clang-tidy;-warnings-as-errors=*"']
+            cmake_extra_opts: '-DCMAKE_CXX_CLANG_TIDY="$(brew --prefix llvm)/bin/clang-tidy;-warnings-as-errors=*"'
           - backend: "THREADS"
             cmake_build_type: "RelWithDebInfo"
-            cxx_standard: "17"
+            cxx_standard: "20"
             compiler: "c++"
             runner: "macos-14"
           - backend: "SERIAL"
             cmake_build_type: "Debug"
-            cxx_standard: "17"
+            cxx_standard: "20"
             compiler: "c++"
             runner: "macos-14"
-            cmake_extra_opts: ['-DCMAKE_CXX_CLANG_TIDY="clang-tidy;-warnings-as-errors=*"']
+            cmake_extra_opts: '-DCMAKE_CXX_CLANG_TIDY="$(brew --prefix llvm)/bin/clang-tidy;-warnings-as-errors=*"'
           - backend: "SERIAL"
             cmake_build_type: "Release"
-            cxx_standard: "17"
+            cxx_standard: "20"
             compiler: "c++"
             runner: "macos-14"
-            cmake_extra_opts: ['-DCMAKE_CXX_CLANG_TIDY="clang-tidy;-warnings-as-errors=*"']
+            cmake_extra_opts: '-DCMAKE_CXX_CLANG_TIDY="$(brew --prefix llvm)/bin/clang-tidy;-warnings-as-errors=*"'
           # Testing a compiler with mdspan implementation (clang 18.1.8+libc++)
           - backend: "SERIAL"
             cmake_build_type: "RelWithDebInfo"
             cxx_standard: "23"
             compiler: "$(brew --prefix llvm@18)/bin/clang++"
             runner: "macos-15"
-            cmake_extra_opts: ['-DCMAKE_CXX_CLANG_TIDY="clang-tidy;-warnings-as-errors=*"']
+            cmake_extra_opts: '-DCMAKE_CXX_CLANG_TIDY="$(brew --prefix llvm@18)/bin/clang-tidy;-warnings-as-errors=*"'
 
     runs-on: ${{ matrix.runner }}
 
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
       - name: Install ccache llvm
         run: |
           brew update
           brew install ccache llvm
-      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      - uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: ~/.cache/ccache
           key: kokkos-osx-${{ matrix.cmake_build_type }}-${{ matrix.backend }}-${{ matrix.cxx_standard }}-${{ github.ref }}-${{ github.sha }}
@@ -64,14 +64,14 @@ jobs:
       - name: configure
         run:
           cmake -B build .
-            -DKokkos_ENABLE_${{ matrix.backend }}=On
+            -DKokkos_ENABLE_${{ matrix.backend }}=ON
             -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
             -DCMAKE_CXX_STANDARD=${{ matrix.cxx_standard }}
             -DKokkos_ARCH_NATIVE=ON
             -DKokkos_ENABLE_COMPILER_WARNINGS=ON
             ${{ matrix.cmake_extra_opts }}
             -DKokkos_ENABLE_DEPRECATED_CODE_4=OFF
-            -DKokkos_ENABLE_TESTS=On
+            -DKokkos_ENABLE_TESTS=ON
             -DKokkos_ENABLE_DEBUG_BOUNDS_CHECK=ON
             -DCMAKE_BUILD_TYPE=${{ matrix.cmake_build_type }}
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache

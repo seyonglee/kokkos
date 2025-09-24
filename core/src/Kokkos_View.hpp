@@ -224,15 +224,18 @@ class View : public Impl::BasicViewFromTraits<DataType, Properties...>::type {
            typename traits::device_type, typename traits::hooks_policy,
            typename traits::memory_traits>;
 
-  // Compatible HostMirror view
+  // Compatible host mirror view
   using host_mirror_type =
       View<typename traits::non_const_data_type, typename traits::array_layout,
            Device<DefaultHostExecutionSpace,
                   typename traits::host_mirror_space::memory_space>,
            typename traits::hooks_policy>;
 
-  // Compatible HostMirror view
-  using HostMirror = host_mirror_type;
+#ifdef KOKKOS_ENABLE_DEPRECATED_CODE_4
+  /** \brief  Compatible HostMirror view */
+  using HostMirror KOKKOS_DEPRECATED_WITH_COMMENT(
+      "Use host_mirror_type instead.") = host_mirror_type;
+#endif
 
   // Unified types
   using uniform_type = typename Impl::ViewUniformType<View, 0>::type;
@@ -266,14 +269,18 @@ class View : public Impl::BasicViewFromTraits<DataType, Properties...>::type {
         base_t::mapping());
   }
 
-  KOKKOS_FUNCTION constexpr size_t stride_0() const { return stride(0); }
-  KOKKOS_FUNCTION constexpr size_t stride_1() const { return stride(1); }
-  KOKKOS_FUNCTION constexpr size_t stride_2() const { return stride(2); }
-  KOKKOS_FUNCTION constexpr size_t stride_3() const { return stride(3); }
-  KOKKOS_FUNCTION constexpr size_t stride_4() const { return stride(4); }
-  KOKKOS_FUNCTION constexpr size_t stride_5() const { return stride(5); }
-  KOKKOS_FUNCTION constexpr size_t stride_6() const { return stride(6); }
-  KOKKOS_FUNCTION constexpr size_t stride_7() const { return stride(7); }
+  // clang-format off
+#ifdef KOKKOS_ENABLE_DEPRECATED_CODE_4
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(0) instead") KOKKOS_FUNCTION constexpr size_t stride_0() const { return stride(0); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(1) instead") KOKKOS_FUNCTION constexpr size_t stride_1() const { return stride(1); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(2) instead") KOKKOS_FUNCTION constexpr size_t stride_2() const { return stride(2); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(3) instead") KOKKOS_FUNCTION constexpr size_t stride_3() const { return stride(3); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(4) instead") KOKKOS_FUNCTION constexpr size_t stride_4() const { return stride(4); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(5) instead") KOKKOS_FUNCTION constexpr size_t stride_5() const { return stride(5); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(6) instead") KOKKOS_FUNCTION constexpr size_t stride_6() const { return stride(6); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(7) instead") KOKKOS_FUNCTION constexpr size_t stride_7() const { return stride(7); }
+#endif
+  // clang-format on
 
   template <typename iType>
   KOKKOS_INLINE_FUNCTION constexpr std::enable_if_t<std::is_integral_v<iType>,
@@ -354,11 +361,11 @@ class View : public Impl::BasicViewFromTraits<DataType, Properties...>::type {
 
   KOKKOS_INLINE_FUNCTION
   const Kokkos::Impl::SharedAllocationTracker& impl_track() const {
-    if constexpr (traits::is_managed) {
-      return base_t::data_handle().tracker();
-    } else {
+    if constexpr (traits::memory_traits::is_unmanaged) {
       static const Kokkos::Impl::SharedAllocationTracker empty_tracker = {};
       return empty_tracker;
+    } else {
+      return base_t::data_handle().tracker();
     }
   }
   //----------------------------------------
@@ -579,7 +586,7 @@ class View : public Impl::BasicViewFromTraits<DataType, Properties...>::type {
             arg_prop,
             Impl::mapping_from_array_layout<typename mdspan_type::mapping_type>(
                 arg_layout)) {
-    static_assert(traits::is_managed,
+    static_assert(!traits::memory_traits::is_unmanaged,
                   "Can't construct managed View with unmanaged memory trait!");
   }
 
@@ -594,29 +601,6 @@ class View : public Impl::BasicViewFromTraits<DataType, Properties...>::type {
             Impl::mapping_from_array_layout<typename mdspan_type::mapping_type>(
                 arg_layout)) {}
 
-#ifdef KOKKOS_ENABLE_CXX17
-  template <class Layout>
-  KOKKOS_FUNCTION explicit View(
-      const typename base_t::data_handle_type& handle, const Layout& arg_layout,
-      std::enable_if_t<
-          (std::is_same_v<Layout, LayoutStride> &&
-           std::is_same_v<typename base_t::layout_type, layout_stride>) ||
-              (std::is_same_v<Layout, LayoutLeft> &&
-               std::is_same_v<typename base_t::layout_type, layout_left>) ||
-              (std::is_same_v<Layout, LayoutLeft> &&
-               std::is_same_v<typename base_t::layout_type,
-                              Experimental::layout_left_padded<> >) ||
-              (std::is_same_v<Layout, LayoutRight> &&
-               std::is_same_v<typename base_t::layout_type, layout_right>) ||
-              (std::is_same_v<Layout, LayoutRight> &&
-               std::is_same_v<typename base_t::layout_type,
-                              Experimental::layout_right_padded<> >),
-          void*> = nullptr)
-      : base_t(
-            handle,
-            Impl::mapping_from_array_layout<typename mdspan_type::mapping_type>(
-                arg_layout)) {}
-#else
   // Constructors from legacy layouts when using Views of the new layouts
   // LayoutLeft -> layout_left, layout_left_padded
   // LayoutRight -> layout_right, layout_right_padded
@@ -667,9 +651,7 @@ class View : public Impl::BasicViewFromTraits<DataType, Properties...>::type {
             handle,
             Impl::mapping_from_array_layout<typename mdspan_type::mapping_type>(
                 arg_layout)) {}
-#endif
 
-#ifndef KOKKOS_ENABLE_CXX17
   template <class P, class... Args>
     requires(!std::is_null_pointer_v<P> &&
              std::is_constructible_v<typename base_t::data_handle_type, P> &&
@@ -688,45 +670,8 @@ class View : public Impl::BasicViewFromTraits<DataType, Properties...>::type {
   // Special function to be preferred over the above for passing in 0, NULL or
   // nullptr when pointer type is char*
   template <class... Args>
-  explicit View(decltype(nullptr), Args... args)
+  KOKKOS_FUNCTION explicit View(std::nullptr_t, Args... args)
       : View(Kokkos::view_wrap(pointer_type(nullptr)), args...) {}
-#else
-  // FIXME: The std::is_null_pointer_v<P> condition is to workaround a GCC8 bug
-  // in overload resolution
-  // FIXME: why does modernize-type-traits have a false positive here?
-  // NOLINTBEGIN(modernize-type-traits)
-  template <class P, class... Args,
-            std::enable_if_t<!std::is_null_pointer_v<P> &&
-                                 std::is_constructible_v<
-                                     typename base_t::data_handle_type, P> &&
-                                 sizeof...(Args) != rank() + 1,
-                             size_t> = 0ul>
-  // NOLINTEND(modernize-type-traits)
-  KOKKOS_FUNCTION View(P ptr_, Args... args)
-      : View(Kokkos::view_wrap(static_cast<pointer_type>(ptr_)), args...) {}
-
-  // Special function to be preferred over the above for string literals
-  // when pointer type is char*
-  // The typename P = pointer_type is a workaround for an nvcc 11.0 bug
-  // where the compiler performs substitution earlier when the class is
-  // instantiated instead of at function instantiation and therefore errors out
-  // on these enable_ifs
-  // FIXME: why does modernize-type-traits have a false positive here?
-  // NOLINTBEGIN(modernize-type-traits)
-  template <class L, class... Args, typename P = pointer_type,
-            std::enable_if_t<(std::is_same_v<P, char*> &&
-                              std::is_same_v<const char*, L>),
-                             size_t> = 0ul>
-  // NOLINTEND(modernize-type-traits)
-  explicit View(L label, Args... args)
-      : View(Kokkos::view_alloc(std::string(label)), args...) {}
-
-  // Special function to be preferred over the above for passing in 0, NULL or
-  // nullptr when pointer type is char*
-  template <class... Args>
-  explicit View(decltype(nullptr), Args... args)
-      : View(Kokkos::view_wrap(pointer_type(nullptr)), args...) {}
-#endif
 
   // FIXME: Constructor which allows always 8 sizes should be deprecated
   template <class... P>
@@ -765,7 +710,7 @@ class View : public Impl::BasicViewFromTraits<DataType, Properties...>::type {
     static_assert(traits::array_layout::is_extent_constructible,
                   "Layout is not constructible from extent arguments. Use "
                   "overload taking a layout object instead.");
-    static_assert(traits::is_managed,
+    static_assert(!traits::memory_traits::is_unmanaged,
                   "Can't construct managed View with unmanaged memory trait!");
   }
 
@@ -907,16 +852,17 @@ class View : public Impl::BasicViewFromTraits<DataType, Properties...>::type {
   }
 
   template <class... Args>
-  View(std::enable_if_t<
+  KOKKOS_FUNCTION View(
+      std::enable_if_t<
 #ifndef KOKKOS_COMPILER_MSVC
-           ((sizeof...(Args)) == rank() + 1) &&
-               (std::is_constructible_v<size_t, Args> && ... && true),
+          ((sizeof...(Args)) == rank() + 1) &&
+              (std::is_constructible_v<size_t, Args> && ... && true),
 #else
            msvc_workaround_ctor_condition_2<Args...>(),
 #endif
-           const pointer_type&>
-           arg_ptr,
-       const Args... args)
+          const pointer_type&>
+          arg_ptr,
+      const Args... args)
       : View(
             Kokkos::view_wrap(arg_ptr,
                               Kokkos::Impl::AccessorArg_t{
@@ -1067,18 +1013,18 @@ class View : public Impl::BasicViewFromTraits<DataType, Properties...>::type {
   //----------------------------------------
   // Allocation tracking properties
   std::string label() const {
-    if constexpr (traits::is_managed) {
-      return this->data_handle().get_label();
-    } else {
+    if constexpr (traits::memory_traits::is_unmanaged) {
       return "";
+    } else {
+      return this->data_handle().get_label();
     }
   }
 
   int use_count() const {
-    if constexpr (traits::is_managed) {
-      return this->data_handle().use_count();
-    } else {
+    if constexpr (traits::memory_traits::is_unmanaged) {
       return 0;
+    } else {
+      return this->data_handle().use_count();
     }
   }
 

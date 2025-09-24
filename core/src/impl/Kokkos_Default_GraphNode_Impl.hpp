@@ -35,8 +35,7 @@ namespace Impl {
 template <class ExecutionSpace>
 struct GraphNodeBackendSpecificDetails {
  private:
-  using execution_space_instance_storage_t =
-      ExecutionSpaceInstanceStorage<ExecutionSpace>;
+  using execution_space_instance_storage_t = InstanceStorage<ExecutionSpace>;
   using default_kernel_impl_t = GraphNodeKernelDefaultImpl<ExecutionSpace>;
   using default_aggregate_impl_t =
       GraphNodeAggregateDefaultImpl<ExecutionSpace>;
@@ -44,7 +43,7 @@ struct GraphNodeBackendSpecificDetails {
   std::vector<std::shared_ptr<GraphNodeBackendSpecificDetails<ExecutionSpace>>>
       m_predecessors = {};
 
-  Kokkos::ObservingRawPtr<default_kernel_impl_t> m_kernel_ptr = nullptr;
+  default_kernel_impl_t* m_kernel_ptr = nullptr;
 
   bool m_has_executed = false;
   bool m_is_aggregate = false;

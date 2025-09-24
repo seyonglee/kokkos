@@ -281,7 +281,7 @@ class DynamicView : public Kokkos::ViewTraits<DataType, P...> {
                                      typename traits::device_type>;
 
   /** \brief  Must be accessible everywhere */
-  using HostMirror = DynamicView;
+  using host_mirror_type = DynamicView;
 
   /** \brief Unified types */
   using uniform_device =
@@ -334,14 +334,18 @@ class DynamicView : public Kokkos::ViewTraits<DataType, P...> {
     return r == 0 ? size() : 1;
   }
 
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_0() const { return 0; }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_1() const { return 0; }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_2() const { return 0; }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_3() const { return 0; }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_4() const { return 0; }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_5() const { return 0; }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_6() const { return 0; }
-  KOKKOS_INLINE_FUNCTION constexpr size_t stride_7() const { return 0; }
+  // clang-format off
+#ifdef KOKKOS_ENABLE_DEPRECATED_CODE_4
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(0) instead") KOKKOS_FUNCTION constexpr size_t stride_0() const { return stride(0); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(1) instead") KOKKOS_FUNCTION constexpr size_t stride_1() const { return stride(1); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(2) instead") KOKKOS_FUNCTION constexpr size_t stride_2() const { return stride(2); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(3) instead") KOKKOS_FUNCTION constexpr size_t stride_3() const { return stride(3); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(4) instead") KOKKOS_FUNCTION constexpr size_t stride_4() const { return stride(4); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(5) instead") KOKKOS_FUNCTION constexpr size_t stride_5() const { return stride(5); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(6) instead") KOKKOS_FUNCTION constexpr size_t stride_6() const { return stride(6); }
+  KOKKOS_DEPRECATED_WITH_COMMENT("Use stride(7) instead") KOKKOS_FUNCTION constexpr size_t stride_7() const { return stride(7); }
+#endif
+  // clang-format on
 
   template <typename iType>
   KOKKOS_INLINE_FUNCTION void stride(iType* const s) const {
@@ -617,8 +621,9 @@ inline auto create_mirror(const Kokkos::Experimental::DynamicView<T, P...>& src,
 
     return ret;
   } else {
-    auto ret = typename Kokkos::Experimental::DynamicView<T, P...>::HostMirror(
-        prop_copy, src.chunk_size(), src.chunk_max() * src.chunk_size());
+    auto ret =
+        typename Kokkos::Experimental::DynamicView<T, P...>::host_mirror_type(
+            prop_copy, src.chunk_size(), src.chunk_max() * src.chunk_size());
 
     ret.resize_serial(src.extent(0));
 
@@ -695,16 +700,18 @@ inline auto create_mirror_view(
     const Kokkos::Experimental::DynamicView<T, P...>& src,
     [[maybe_unused]] const Impl::ViewCtorProp<ViewCtorArgs...>& arg_prop) {
   if constexpr (!Impl::ViewCtorProp<ViewCtorArgs...>::has_memory_space) {
-    if constexpr (std::is_same_v<typename Kokkos::Experimental::DynamicView<
-                                     T, P...>::memory_space,
-                                 typename Kokkos::Experimental::DynamicView<
-                                     T, P...>::HostMirror::memory_space> &&
+    if constexpr (std::is_same_v<
+                      typename Kokkos::Experimental::DynamicView<
+                          T, P...>::memory_space,
+                      typename Kokkos::Experimental::DynamicView<
+                          T, P...>::host_mirror_type::memory_space> &&
                   std::is_same_v<typename Kokkos::Experimental::DynamicView<
                                      T, P...>::data_type,
                                  typename Kokkos::Experimental::DynamicView<
-                                     T, P...>::HostMirror::data_type>) {
+                                     T, P...>::host_mirror_type::data_type>) {
       return
-          typename Kokkos::Experimental::DynamicView<T, P...>::HostMirror(src);
+          typename Kokkos::Experimental::DynamicView<T, P...>::host_mirror_type(
+              src);
     } else {
       return Kokkos::Impl::choose_create_mirror(src, arg_prop);
     }

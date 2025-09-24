@@ -74,8 +74,12 @@ namespace Kokkos {
 using MemoryManaged KOKKOS_DEPRECATED = Kokkos::MemoryTraits<>;
 #endif
 using MemoryUnmanaged = Kokkos::MemoryTraits<Kokkos::Unmanaged>;
+#ifdef KOKKOS_ENABLE_DEPRECATED_CODE_4
 using MemoryRandomAccess =
     Kokkos::MemoryTraits<Kokkos::Unmanaged | Kokkos::RandomAccess>;
+#else
+using MemoryRandomAccess = Kokkos::MemoryTraits<Kokkos::RandomAccess>;
+#endif
 
 }  // namespace Kokkos
 
@@ -91,12 +95,12 @@ namespace Impl {
  *  Use compiler flag to enable overwrites.
  */
 #ifdef KOKKOS_ENABLE_DEPRECATED_CODE_4
-static constexpr unsigned MEMORY_ALIGNMENT = KOKKOS_IMPL_MEMORY_ALIGNMENT;
-static constexpr unsigned MEMORY_ALIGNMENT_THRESHOLD =
+inline constexpr unsigned MEMORY_ALIGNMENT = KOKKOS_IMPL_MEMORY_ALIGNMENT;
+inline constexpr unsigned MEMORY_ALIGNMENT_THRESHOLD =
     KOKKOS_IMPL_MEMORY_ALIGNMENT_THRESHOLD;
 #else
-static constexpr unsigned MEMORY_ALIGNMENT           = 64;
-static constexpr unsigned MEMORY_ALIGNMENT_THRESHOLD = 1;
+inline constexpr unsigned MEMORY_ALIGNMENT           = 64;
+inline constexpr unsigned MEMORY_ALIGNMENT_THRESHOLD = 1;
 #endif
 static_assert(has_single_bit(MEMORY_ALIGNMENT),
               "MEMORY_ALIGNMENT must be a power of 2");

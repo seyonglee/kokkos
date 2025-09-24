@@ -21,10 +21,8 @@
 
 #include <SYCL/Kokkos_SYCL_Half_Impl_Type.hpp>
 #include <impl/Kokkos_Half_FloatingPointWrapper.hpp>
-#include <Kokkos_ReductionIdentity.hpp>
 
-namespace Kokkos {
-namespace Experimental {
+namespace Kokkos::Experimental {
 
 /************************** half conversions **********************************/
 KOKKOS_INLINE_FUNCTION
@@ -102,36 +100,13 @@ KOKKOS_INLINE_FUNCTION std::enable_if_t<std::is_same_v<T, unsigned long>, T>
 cast_from_half(half_t val) {
   return static_cast<T>(half_t::impl_type(val));
 }
-}  // namespace Experimental
 
-template <>
-struct reduction_identity<Kokkos::Experimental::half_t> {
-  KOKKOS_FORCEINLINE_FUNCTION constexpr static Kokkos::Experimental::half_t
-  sum() noexcept {
-    return Kokkos::Experimental::half_t::impl_type(0.0F);
-  }
-  KOKKOS_FORCEINLINE_FUNCTION constexpr static Kokkos::Experimental::half_t
-  prod() noexcept {
-    return Kokkos::Experimental::half_t::impl_type(1.0F);
-  }
-  KOKKOS_FORCEINLINE_FUNCTION constexpr static Kokkos::Experimental::half_t
-  max() noexcept {
-    return std::numeric_limits<
-        Kokkos::Experimental::half_t::impl_type>::lowest();
-  }
-  KOKKOS_FORCEINLINE_FUNCTION constexpr static Kokkos::Experimental::half_t
-  min() noexcept {
-    return std::numeric_limits<Kokkos::Experimental::half_t::impl_type>::max();
-  }
-};
-
-}  // namespace Kokkos
+}  // namespace Kokkos::Experimental
 #endif  // KOKKOS_IMPL_SYCL_HALF_TYPE_DEFINED
 
 #ifdef KOKKOS_IMPL_SYCL_BHALF_TYPE_DEFINED
 
-namespace Kokkos {
-namespace Experimental {
+namespace Kokkos::Experimental {
 
 /************************** bhalf conversions *********************************/
 KOKKOS_INLINE_FUNCTION
@@ -211,26 +186,8 @@ KOKKOS_INLINE_FUNCTION std::enable_if_t<std::is_same_v<T, unsigned long>, T>
 cast_from_bhalf(bhalf_t val) {
   return static_cast<T>(bhalf_t::impl_type(val));
 }
-}  // namespace Experimental
+}  // namespace Kokkos::Experimental
 
-// sycl::bfloat16 doesn't have constexpr constructors so we return float
-template <>
-struct reduction_identity<Kokkos::Experimental::bhalf_t> {
-  KOKKOS_FORCEINLINE_FUNCTION constexpr static float sum() noexcept {
-    return 0.f;
-  }
-  KOKKOS_FORCEINLINE_FUNCTION constexpr static float prod() noexcept {
-    return 1.0f;
-  }
-  KOKKOS_FORCEINLINE_FUNCTION constexpr static float max() noexcept {
-    return -0x7f7f;
-  }
-  KOKKOS_FORCEINLINE_FUNCTION constexpr static float min() noexcept {
-    return 0x7f7f;
-  }
-};
-
-}  // namespace Kokkos
 #endif  // KOKKOS_IMPL_SYCL_BHALF_TYPE_DEFINED
 
 #endif

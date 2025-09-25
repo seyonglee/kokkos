@@ -342,8 +342,7 @@ struct TestComplexSpecialFunctions {
     ASSERT_FLOAT_EQ(h_results(13).real(), r.real());
     ASSERT_FLOAT_EQ(h_results(13).imag(), r.imag());
     // atanh
-    // Work around a bug in gcc 5.3.1 where the compiler cannot compute atanh
-    r = {0.163481616851666003, 1.27679502502111284};
+    r = std::atanh(a);
     ASSERT_FLOAT_EQ(h_results(14).real(), r.real());
     ASSERT_FLOAT_EQ(h_results(14).imag(), r.imag());
     r = std::asin(a);
@@ -353,8 +352,7 @@ struct TestComplexSpecialFunctions {
     ASSERT_FLOAT_EQ(h_results(16).real(), r.real());
     ASSERT_FLOAT_EQ(h_results(16).imag(), r.imag());
     // atan
-    // Work around a bug in gcc 5.3.1 where the compiler cannot compute atan
-    r = {1.380543138238714, 0.2925178131625636};
+    r = std::atan(a);
     ASSERT_FLOAT_EQ(h_results(17).real(), r.real());
     ASSERT_FLOAT_EQ(h_results(17).imag(), r.imag());
     // log10
@@ -414,15 +412,12 @@ TEST(TEST_CATEGORY, complex_special_funtions) {
 
 TEST(TEST_CATEGORY, complex_io) { testComplexIO(); }
 
-TEST(TEST_CATEGORY, complex_trivially_copyable) {
-  // Kokkos::complex<RealType> is trivially copyable when RealType is
-  // trivially copyable
-  using RealType = double;
-  // clang claims compatibility with gcc 4.2.1 but all versions tested know
-  // about std::is_trivially_copyable.
-  ASSERT_TRUE(std::is_trivially_copyable_v<Kokkos::complex<RealType>> ||
-              !std::is_trivially_copyable_v<RealType>);
-}
+static_assert(std::is_trivially_copyable_v<Kokkos::complex<float>>);
+static_assert(std::is_trivially_copyable_v<Kokkos::complex<double>>);
+#ifndef KOKKOS_IMPL_32BIT  // FIXME_32BIT
+// error: requested alignment '24' is not a positive power of 2
+static_assert(std::is_trivially_copyable_v<Kokkos::complex<long double>>);
+#endif
 
 template <class ExecSpace>
 struct TestBugPowAndLogComplex {

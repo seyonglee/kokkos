@@ -46,9 +46,6 @@ class OpenACCInternal {
 
 void create_OpenACC_instances(std::vector<OpenACC>& instances);
 
-}  // namespace Kokkos::Experimental::Impl
-
-namespace Kokkos::Experimental::Impl {
 // For each space in partition, assign a new async ID, ignoring weights
 template <class T>
 std::vector<OpenACC> impl_partition_space(const OpenACC& base_instance,

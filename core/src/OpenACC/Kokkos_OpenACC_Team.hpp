@@ -301,7 +301,7 @@ class TeamPolicyInternal<Kokkos::Experimental::OpenACC, Properties...>
 
   TeamPolicyInternal(int league_size_request, int team_size_request,
                      int vector_length_request = 1)
-      : m_space(typename traits::execution_space()),
+      : m_space(),
         m_team_scratch_size{0, 0},
         m_thread_scratch_size{0, 0},
         m_tune_team_size(false),

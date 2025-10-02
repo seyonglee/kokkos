@@ -247,10 +247,10 @@ class TeamPolicyInternal<Kokkos::Experimental::OpenACC, Properties...>
         m_space(p.m_space) {}
 
   /** \brief  Specify league size, request team size */
-  TeamPolicyInternal(const typename traits::execution_space& space_,
+  TeamPolicyInternal(const typename traits::execution_space& space,
                      int league_size_request, int team_size_request,
                      int vector_length_request = 1)
-      : m_space(space_),
+      : m_space(space),
         m_team_scratch_size{0, 0},
         m_thread_scratch_size{0, 0},
         m_tune_team_size(false),
@@ -259,12 +259,12 @@ class TeamPolicyInternal<Kokkos::Experimental::OpenACC, Properties...>
     init(league_size_request, team_size_request, vector_length_request);
   }
 
-  TeamPolicyInternal(const typename traits::execution_space& space_,
+  TeamPolicyInternal(const typename traits::execution_space& space,
                      int league_size_request,
                      const Kokkos::AUTO_t& /* team_size_request */
                      ,
                      int vector_length_request = 1)
-      : m_space(space_),
+      : m_space(space),
         m_team_scratch_size{0, 0},
         m_thread_scratch_size{0, 0},
         m_tune_team_size(true),
@@ -274,12 +274,12 @@ class TeamPolicyInternal<Kokkos::Experimental::OpenACC, Properties...>
          vector_length_request);
   }
 
-  TeamPolicyInternal(const typename traits::execution_space& space_,
+  TeamPolicyInternal(const typename traits::execution_space& space,
                      int league_size_request,
                      const Kokkos::AUTO_t& /* team_size_request */
                      ,
                      const Kokkos::AUTO_t& /* vector_length_request */)
-      : m_space(space_),
+      : m_space(space),
         m_team_scratch_size{0, 0},
         m_thread_scratch_size{0, 0},
         m_tune_team_size(true),
@@ -287,10 +287,10 @@ class TeamPolicyInternal<Kokkos::Experimental::OpenACC, Properties...>
         m_chunk_size(0) {
     init(league_size_request, default_team_size, 1);
   }
-  TeamPolicyInternal(const typename traits::execution_space& space_,
+  TeamPolicyInternal(const typename traits::execution_space& space,
                      int league_size_request, int team_size_request,
                      const Kokkos::AUTO_t& /* vector_length_request */)
-      : m_space(space_),
+      : m_space(space),
         m_team_scratch_size{0, 0},
         m_thread_scratch_size{0, 0},
         m_tune_team_size(false),

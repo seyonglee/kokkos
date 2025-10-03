@@ -33,13 +33,11 @@ Kokkos::Experimental::OpenACC::OpenACC()
 }
 
 Kokkos::Experimental::OpenACC::OpenACC(int async_arg)
-    : m_space_instance(
-          new Kokkos::Experimental::Impl::OpenACCInternal,
-          [](Impl::OpenACCInternal* ptr) {
-            ptr->finalize();
-            atomic_dec(&Impl::OpenACCInternal::m_num_active_user_asyncs);
-            delete ptr;
-          }) {
+    : m_space_instance(new Kokkos::Experimental::Impl::OpenACCInternal,
+                       [](Impl::OpenACCInternal* ptr) {
+                         ptr->finalize();
+                         delete ptr;
+                       }) {
   Impl::OpenACCInternal::singleton().verify_is_initialized(
       "OpenACC instance constructor");
   m_space_instance->initialize(async_arg);

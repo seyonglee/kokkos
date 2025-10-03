@@ -12,9 +12,6 @@
 #include <iosfwd>
 #include <string>
 
-#define KOKKOS_IMPL_ACC_ASYNC_RANGE_BEGIN 64
-#define KOKKOS_IMPL_ACC_ASYNC_RANGE_LENGTH 128
-
 namespace Kokkos::Experimental::Impl {
 
 class OpenACCInternal {
@@ -50,6 +47,8 @@ class OpenACCInternal {
 template <class T>
 std::vector<OpenACC> impl_partition_space(const OpenACC& base_instance,
                                           const std::vector<T>& weights) {
+  constexpr int KOKKOS_IMPL_ACC_ASYNC_RANGE_BEGIN  = 64;
+  constexpr int KOKKOS_IMPL_ACC_ASYNC_RANGE_LENGTH = 128;
   std::vector<OpenACC> instances;
   auto const n = weights.size();
   instances.reserve(n);
@@ -63,8 +62,5 @@ std::vector<OpenACC> impl_partition_space(const OpenACC& base_instance,
 }
 
 }  // namespace Kokkos::Experimental::Impl
-
-#undef KOKKOS_IMPL_ACC_ASYNC_RANGE_BEGIN
-#undef KOKKOS_IMPL_ACC_ASYNC_RANGE_LENGTH
 
 #endif
